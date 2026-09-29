@@ -1,0 +1,45 @@
+// Dates are kept as 'YYYY-MM-DD' strings in the LOCAL timezone,
+// the same shape Postgres uses for a `date` column.
+// Strings in this shape sort and compare correctly as plain text.
+
+const pad = (n) => String(n).padStart(2, '0')
+
+/** Today's date (or any Date) as 'YYYY-MM-DD' in the user's own timezone. */
+export function toLocalISODate(date = new Date()) {
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
+}
+
+/** A date N days from today, e.g. daysFromToday(-3) for three days ago. */
+export function daysFromToday(n) {
+  const d = new Date()
+  d.setDate(d.getDate() + n)
+  return toLocalISODate(d)
+}
+
+/** Whole days from one 'YYYY-MM-DD' to another. */
+export function daysBetween(fromISO, toISO) {
+  // Treat both as midnight UTC so daylight-saving shifts can't give 2.96 days
+  const toUTC = (iso) => {
+    const [y, m, d] = iso.split('-').map(Number)
+    return Date.UTC(y, m - 1, d)
+  }
+  return Math.round((toUTC(toISO) - toUTC(fromISO)) / 86_400_000)
+}
+
+/** 'Tuesday, 29 Sep' for the page header. */
+export function formatHeaderDate(date = new Date()) {
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'long' })
+  const month = date.toLocaleDateString('en-US', { month: 'short' })
+  return `${weekday}, ${date.getDate()} ${month}`
+}
+
+/** 'Wed' for a date within the next week, otherwise '2 Oct'. */
+export function formatShortDate(iso, todayISO = toLocalISODate()) {
+  const [y, m, d] = iso.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const diff = daysBetween(todayISO, iso)
+  if (diff === 0) return 'today'
+  if (diff === 1) return 'tomorrow'
+  if (diff > 1 && diff < 7) return date.toLocaleDateString('en-US', { weekday: 'short' })
+  return `${d} ${date.toLocaleDateString('en-US', { month: 'short' })}`
+}

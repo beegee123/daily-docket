@@ -1,0 +1,58 @@
+import { daysBetween, formatShortDate } from '../lib/dates.js'
+import { CircleIcon, CheckCircleIcon, NoteIcon } from './Icons.jsx'
+
+/**
+ * One task on the docket.
+ * Props:
+ *   task       – the task object
+ *   areasById  – lookup of area id -> area, so the row can show names and colours
+ *   todayISO   – today's local date, 'YYYY-MM-DD'
+ */
+export default function TaskRow({ task, areasById, todayISO }) {
+  const isDone = task.status === 'done'
+  const daysCarried = daysBetween(task.originalDate, todayISO)
+  const areas = task.areaIds.map((id) => areasById[id]).filter(Boolean)
+
+  return (
+    <li className={`task-row${isDone ? ' is-done' : ''}`}>
+      {/* Does nothing yet: tapping to complete arrives in step 3 */}
+      <button
+        type="button"
+        className="tick"
+        aria-label={isDone ? `Mark "${task.title}" not done` : `Mark "${task.title}" done`}
+      >
+        {isDone ? <CheckCircleIcon /> : <CircleIcon />}
+      </button>
+
+      <div className="task-body">
+        <span className="task-title">{task.title}</span>
+
+        <div className="task-meta">
+          {areas.map((area) => (
+            <span key={area.id} className="area-tag">
+              <span className="dot" style={{ background: area.color }} />
+              {area.name}
+            </span>
+          ))}
+
+          {!isDone && daysCarried > 0 && (
+            <span className="carry-badge">
+              ↻ {daysCarried} {daysCarried === 1 ? 'day' : 'days'}
+            </span>
+          )}
+
+          {task.status === 'doing' && <span>In progress</span>}
+
+          {!isDone && task.dueDate && <span>Due {formatShortDate(task.dueDate, todayISO)}</span>}
+
+          {task.notes && (
+            <span className="note-flag" title="Has notes">
+              <NoteIcon />
+              <span className="visually-hidden">Has notes</span>
+            </span>
+          )}
+        </div>
+      </div>
+    </li>
+  )
+}

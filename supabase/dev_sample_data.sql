@@ -1,16 +1,17 @@
 -- Daily Docket: sample data for testing (not for production)
+-- Not sure which email? Run:  select id, email from auth.users;
 -- 1. Replace you@example.com with the email you sign in to Pantry with.
 -- 2. Run the whole file in the Supabase SQL Editor.
 -- The SQL Editor runs as an admin, so we pass your user id in by hand.
 
 -- Your four starter areas
 select docket.seed_starter_areas(
-  (select id from auth.users where email = 'you@example.com')
+  (select id from auth.users where lower(email) = lower('you@example.com'))
 );
 
 -- A few tasks, some carried over from earlier days
 with me as (
-  select id from auth.users where email = 'you@example.com'
+  select id from auth.users where lower(email) = lower('you@example.com')
 ),
 new_tasks as (
   insert into docket.tasks
