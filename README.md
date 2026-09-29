@@ -22,7 +22,14 @@ A to-do app for work and home where unfinished tasks roll forward on their own. 
 Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 
 1. `001_docket_core.sql` — the `docket` schema, areas, tasks, the task–area link table and row-level security
+2. `002_realtime.sql` — turns on live sync for the docket tables
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 
 After running `001`, add `docket` to **Exposed schemas** in the project's Data API settings so the app can reach it.
+
+## Running locally
+
+1. Copy `.env.example` to `.env.local` and fill in the Supabase URL and key (the same values Pantry uses).
+2. `npm install`
+3. `npm run dev`

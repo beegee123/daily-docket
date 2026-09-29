@@ -10,7 +10,7 @@ import { inArea, isCarried, isDoneOn, isOpen } from '../lib/tasks.js'
  * selected (here). Every list below is worked out from those each time
  * the screen draws, so the lists can never disagree with the tasks.
  */
-export default function Today({ areas, tasks, onToggle }) {
+export default function Today({ areas, tasks, onToggle, userEmail, onSignOut }) {
   // null = "All". Which chip is on is this screen's own business, so it
   // lives here rather than in App.
   const [areaFilter, setAreaFilter] = useState(null)
@@ -127,6 +127,13 @@ export default function Today({ areas, tasks, onToggle }) {
             </ul>
           </section>
         )}
+
+        <p className="signed-in">
+          Signed in as {userEmail} ·{' '}
+          <button type="button" className="link-btn" onClick={onSignOut}>
+            Sign out
+          </button>
+        </p>
       </main>
 
       {/* Quick capture works in step 6 */}

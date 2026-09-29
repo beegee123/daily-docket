@@ -9,6 +9,11 @@ export function toLocalISODate(date = new Date()) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`
 }
 
+/** Local midnight today, as a full timestamp the database understands. */
+export function startOfLocalDayISO(date = new Date()) {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString()
+}
+
 /** A date N days from today, e.g. daysFromToday(-3) for three days ago. */
 export function daysFromToday(n) {
   const d = new Date()

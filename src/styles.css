@@ -221,3 +221,87 @@ button { font: inherit; color: inherit; cursor: pointer; }
 
 /* Keyboard focus ring everywhere */
 :focus-visible { outline: 2px solid var(--cobalt); outline-offset: 2px; }
+
+/* ---------- Step 4: sign-in, status screens, toast ---------- */
+
+.btn-primary {
+  min-height: 50px;
+  padding: 0 20px;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--cobalt);
+  color: #FFFFFF;
+  font-size: 15px;
+  font-weight: 700;
+}
+.btn-primary:disabled { opacity: .6; cursor: default; }
+
+.link-btn {
+  border: 0;
+  background: none;
+  padding: 0;
+  color: var(--cobalt);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.sign-in { padding: 48px 20px; display: flex; flex-direction: column; gap: 28px; }
+.sign-in h1, .status-screen h1 {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 30px;
+  letter-spacing: -.02em;
+}
+
+.form { display: flex; flex-direction: column; gap: 16px; }
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.field input {
+  height: 48px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--ink);
+  font: 400 16px var(--font-body);
+}
+.form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #FBE9E7;
+  color: #A3261B;
+  font-size: 14px;
+}
+
+.status-screen {
+  padding: 48px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
+}
+.status-screen p { margin: 0; color: var(--muted); line-height: 1.5; }
+
+.signed-in {
+  margin: 8px 0 0;
+  padding: 0 4px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(max(16px, env(safe-area-inset-bottom)) + 76px);
+  transform: translateX(-50%);
+  width: min(448px, calc(100% - 28px));
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: var(--ink);
+  color: #FFFFFF;
+  font-size: 14px;
+  box-shadow: 0 8px 20px rgba(22, 32, 58, .2);
+}
