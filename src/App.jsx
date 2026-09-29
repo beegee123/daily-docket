@@ -7,7 +7,7 @@ import History from './pages/History.jsx'
 import SignIn from './pages/SignIn.jsx'
 import { useDocket } from './hooks/useDocket.js'
 import { useSession } from './hooks/useSession.js'
-import { closeDay } from './lib/api.js'
+import { reopenDay } from './lib/api.js'
 import { configError, supabase } from './lib/supabase.js'
 
 // Which screen to show: setup message, loading, sign-in, or your docket.
@@ -27,7 +27,7 @@ export default function App() {
 }
 
 function Docket({ user }) {
-  const { areas, tasks, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
+  const { areas, tasks, closure, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
     useDocket(user.id)
 
   if (status === 'loading') return <StatusScreen title="Loading your docket…" />
@@ -46,22 +46,22 @@ function Docket({ user }) {
     )
   }
 
-  // After Close the day: refresh, and offer Undo for a few seconds
-  function handleClosed(message, undoItems) {
-    refresh()
-    const undo = {
-      label: 'Undo',
-      run: async () => {
-        try {
-          await closeDay(undoItems)
-          refresh()
-          announce('Close undone')
-        } catch (e) {
-          announce(`Couldn't undo: ${e.message}`)
-        }
-      },
+  // Put a closed day back exactly as it was
+  async function handleReopen(closureId) {
+    try {
+      await reopenDay(closureId)
+      refresh()
+      announce('Day reopened')
+    } catch (e) {
+      announce(`Couldn't reopen: ${e.message}`)
     }
-    announce(message, undoItems.length ? undo : null)
+  }
+
+  // After Close the day: refresh, and offer Undo for a few seconds.
+  // (Reopen on Today does the same thing until midnight.)
+  function handleClosed(message, closureId) {
+    refresh()
+    announce(message, { label: 'Undo', run: () => handleReopen(closureId) })
   }
 
   // One address per screen, so the phone's back button works
@@ -75,6 +75,8 @@ function Docket({ user }) {
               areas={areas}
               tasks={tasks}
               onToggle={toggle}
+              closure={closure}
+              onReopen={handleReopen}
               userEmail={user.email}
               onSignOut={() => supabase.auth.signOut()}
             />

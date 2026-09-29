@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
-import { closeDay } from '../lib/api.js'
+import { closeDayWithRecord } from '../lib/api.js'
 import { daysBetween, daysFromToday, formatShortDate, toLocalISODate } from '../lib/dates.js'
 import { isCarried, isDoneOn, isOpen } from '../lib/tasks.js'
 
@@ -65,11 +65,11 @@ export default function CloseDay({ areas, tasks, onClosed }) {
     setBusy(true)
     setError(null)
     try {
-      const { moved, dropped } = await closeDay(items)
+      const { moved, dropped, closureId } = await closeDayWithRecord(items, todayISO, undoItems)
       const parts = []
       if (moved) parts.push(`${moved} moved`)
       if (dropped) parts.push(`${dropped} dropped`)
-      onClosed(parts.length ? `Day closed · ${parts.join(', ')}` : 'Day closed', undoItems)
+      onClosed(parts.length ? `Day closed · ${parts.join(', ')}` : 'Day closed', closureId)
       navigate('/')
     } catch (e) {
       setError(e.message)

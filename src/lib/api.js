@@ -166,3 +166,38 @@ export async function restoreTask(id, dayISO) {
   if (error) throw error
   if (!data || data.length === 0) throw new Error('That task could not be restored.')
 }
+
+/**
+ * Close the day and keep a record so it can be reopened until midnight
+ * (see supabase/006_reopen_day.sql). Returns { moved, dropped, closureId }.
+ */
+export async function closeDayWithRecord(items, closedOnISO, undoItems) {
+  const { data, error } = await supabase.rpc('close_day_with_record', {
+    p_items: items,
+    p_closed_on: closedOnISO,
+    p_undo_items: undoItems,
+  })
+  if (error) throw error
+  const row = data?.[0] ?? {}
+  return { moved: row.moved ?? 0, dropped: row.dropped ?? 0, closureId: row.closure_id }
+}
+
+/** Undo a close: every task goes back where it was. */
+export async function reopenDay(closureId) {
+  const { error } = await supabase.rpc('reopen_day', { p_closure_id: closureId })
+  if (error) throw error
+}
+
+/** Today's most recent close that hasn't been reopened, or null. */
+export async function fetchOpenClosure(todayISO) {
+  const { data, error } = await supabase
+    .from('day_closures')
+    .select('id, closed_at')
+    .eq('closed_on', todayISO)
+    .is('reopened_at', null)
+    .order('closed_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error) throw error
+  return data ? { id: data.id, closedAt: data.closed_at } : null
+}

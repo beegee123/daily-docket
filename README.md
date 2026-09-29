@@ -26,6 +26,7 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 3. `003_save_task.sql` — saves a task and its areas in one transaction
 4. `004_close_day.sql` — applies the Close the day choices in one transaction
 5. `005_close_day_undo.sql` — adds restore, used by Undo and History
+6. `006_reopen_day.sql` — records each close so the day can be reopened until midnight
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 

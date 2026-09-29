@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
-import { fetchAreas, fetchTodayTasks, saveDoneState, seedStarterAreas } from '../lib/api.js'
+import {
+  fetchAreas,
+  fetchOpenClosure,
+  fetchTodayTasks,
+  saveDoneState,
+  seedStarterAreas,
+} from '../lib/api.js'
 import { startOfLocalDayISO, toLocalISODate } from '../lib/dates.js'
 import { toggleDone } from '../lib/tasks.js'
 
@@ -11,6 +17,7 @@ import { toggleDone } from '../lib/tasks.js'
 export function useDocket(userId) {
   const [areas, setAreas] = useState([])
   const [tasks, setTasks] = useState([])
+  const [closure, setClosure] = useState(null) // today's close, if not reopened
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [error, setError] = useState(null)
   // A short message at the bottom of the screen, optionally with a button:
@@ -23,12 +30,14 @@ export function useDocket(userId) {
     if (!quiet) setStatus('loading')
     try {
       const now = new Date()
-      const [nextAreas, nextTasks] = await Promise.all([
+      const [nextAreas, nextTasks, nextClosure] = await Promise.all([
         fetchAreas(),
         fetchTodayTasks(toLocalISODate(now), startOfLocalDayISO(now)),
+        fetchOpenClosure(toLocalISODate(now)),
       ])
       setAreas(nextAreas)
       setTasks(nextTasks)
+      setClosure(nextClosure)
       setStatus('ready')
       setError(null)
     } catch (e) {
@@ -73,6 +82,7 @@ export function useDocket(userId) {
       .channel(`docket-${userId}`)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'tasks' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'task_areas' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'docket', table: 'day_closures' }, scheduleReload)
       .subscribe()
 
     // Coming back to the app (or past midnight) also refreshes
@@ -114,6 +124,7 @@ export function useDocket(userId) {
   return {
     areas,
     tasks,
+    closure,
     status,
     error,
     notice,

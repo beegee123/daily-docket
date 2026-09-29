@@ -492,3 +492,21 @@ a.btn-dark:hover { color: #FFFFFF; }
   font-weight: 700;
   flex-shrink: 0;
 }
+
+/* ---------- Step 9: reopen day ---------- */
+
+.closed-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 16px 14px;
+  padding: 2px 8px 2px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--muted);
+}
+.closed-bar .text-btn:disabled { opacity: .6; cursor: default; }

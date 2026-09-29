@@ -12,7 +12,7 @@ import { inArea, isCarried, isDoneOn, isOpen } from '../lib/tasks.js'
  * selected (here). Every list below is worked out from those each time
  * the screen draws, so the lists can never disagree with the tasks.
  */
-export default function Today({ areas, tasks, onToggle, userEmail, onSignOut }) {
+export default function Today({ areas, tasks, onToggle, closure, onReopen, userEmail, onSignOut }) {
   const [areaFilter, setAreaFilter] = useState(null) // null = All
   const navigate = useNavigate()
 
@@ -38,6 +38,7 @@ export default function Today({ areas, tasks, onToggle, userEmail, onSignOut }) 
     .sort((a, b) => b.completedAt.localeCompare(a.completedAt)) // most recent first
 
   const rowProps = { areasById, todayISO, onToggle }
+  const [reopening, setReopening] = useState(false)
   const filterName = areaFilter ? areasById[areaFilter].name : null
 
   return (
@@ -65,6 +66,27 @@ export default function Today({ areas, tasks, onToggle, userEmail, onSignOut }) 
       </nav>
 
       <AreaChips areas={areas} selected={areaFilter} onChange={setAreaFilter} />
+
+      {closure && (
+        <div className="closed-bar" role="status">
+          <span>
+            Day closed at{' '}
+            {new Date(closure.closedAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+          </span>
+          <button
+            type="button"
+            className="text-btn"
+            disabled={reopening}
+            onClick={async () => {
+              setReopening(true)
+              await onReopen(closure.id)
+              setReopening(false)
+            }}
+          >
+            {reopening ? 'Reopening…' : 'Reopen'}
+          </button>
+        </div>
+      )}
 
       <main className="lists">
         {carried.length > 0 && (
