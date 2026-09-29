@@ -1,37 +1,43 @@
+import { useState } from 'react'
 import TaskRow from '../components/TaskRow.jsx'
 import { MicIcon, PlusIcon, SlidersIcon } from '../components/Icons.jsx'
 import { formatHeaderDate, toLocalISODate } from '../lib/dates.js'
+import { inArea, isCarried, isDoneOn, isOpen } from '../lib/tasks.js'
 
 /**
  * The Today screen.
- * Nothing here is stored as "carried over": both lists are worked out
- * from each task's dates every time the screen draws.
+ * Only two things are stored: the tasks (in App) and which area chip is
+ * selected (here). Every list below is worked out from those each time
+ * the screen draws, so the lists can never disagree with the tasks.
  */
-export default function Today({ areas, tasks }) {
-  const todayISO = toLocalISODate()
+export default function Today({ areas, tasks, onToggle }) {
+  // null = "All". Which chip is on is this screen's own business, so it
+  // lives here rather than in App.
+  const [areaFilter, setAreaFilter] = useState(null)
 
-  // Look up areas by id instead of searching the array for every row
+  const todayISO = toLocalISODate()
   const areasById = Object.fromEntries(areas.map((a) => [a.id, a]))
 
-  const live = tasks.filter((t) => !t.droppedAt)
+  // Header counts cover the whole day, whatever the filter
+  const openCount = tasks.filter((t) => isOpen(t, todayISO)).length
+  const doneCount = tasks.filter((t) => isDoneOn(t, todayISO)).length
+  const carriedCount = tasks.filter((t) => isCarried(t, todayISO)).length
 
-  // Open = not done, and on the docket today or earlier.
-  // 'YYYY-MM-DD' strings compare correctly as text.
-  const open = live.filter((t) => t.status !== 'done' && t.scheduledDate <= todayISO)
+  // The lists respect the selected area
+  const shown = tasks.filter((t) => inArea(t, areaFilter))
 
-  // Carried over = open tasks first put on a docket before today, oldest first
-  const carried = open
-    .filter((t) => t.originalDate < todayISO)
+  const carried = shown
+    .filter((t) => isCarried(t, todayISO))
     .sort((a, b) => a.originalDate.localeCompare(b.originalDate))
 
-  const todayOnly = open.filter((t) => t.originalDate >= todayISO)
+  const todayOnly = shown.filter((t) => isOpen(t, todayISO) && !isCarried(t, todayISO))
 
-  const doneToday = live.filter(
-    (t) => t.status === 'done' && t.completedAt && toLocalISODate(new Date(t.completedAt)) === todayISO,
-  )
+  const doneToday = shown
+    .filter((t) => isDoneOn(t, todayISO))
+    .sort((a, b) => b.completedAt.localeCompare(a.completedAt)) // most recent first
 
-  const total = open.length + doneToday.length
-  const rowProps = { areasById, todayISO }
+  const rowProps = { areasById, todayISO, onToggle }
+  const filterName = areaFilter ? areasById[areaFilter].name : null
 
   return (
     <div className="screen">
@@ -40,7 +46,7 @@ export default function Today({ areas, tasks }) {
           <span className="eyebrow">DAILY DOCKET</span>
           <h1>{formatHeaderDate()}</h1>
           <span className="summary">
-            {doneToday.length} of {total} done · {carried.length} carried over
+            {doneCount} of {openCount + doneCount} done · {carriedCount} carried over
           </span>
         </div>
         <div className="header-actions">
@@ -57,15 +63,31 @@ export default function Today({ areas, tasks }) {
         <a href="#">Routines</a>
       </nav>
 
-      {/* Filtering works in step 3; for now "All" is always on */}
       <div className="chips" role="group" aria-label="Filter by area">
-        <button type="button" className="chip is-on">All</button>
-        {areas.map((area) => (
-          <button type="button" key={area.id} className="chip">
-            <span className="dot" style={{ background: area.color }} />
-            {area.name}
-          </button>
-        ))}
+        <button
+          type="button"
+          className={`chip${areaFilter === null ? ' is-on' : ''}`}
+          aria-pressed={areaFilter === null}
+          onClick={() => setAreaFilter(null)}
+        >
+          All
+        </button>
+        {areas.map((area) => {
+          const on = areaFilter === area.id
+          return (
+            <button
+              type="button"
+              key={area.id}
+              className={`chip${on ? ' is-on' : ''}`}
+              aria-pressed={on}
+              // Tapping the selected chip again goes back to All
+              onClick={() => setAreaFilter(on ? null : area.id)}
+            >
+              <span className="dot" style={{ background: on ? '#FFFFFF' : area.color }} />
+              {area.name}
+            </button>
+          )
+        })}
       </div>
 
       <main className="lists">
@@ -89,7 +111,9 @@ export default function Today({ areas, tasks }) {
               {todayOnly.map((t) => <TaskRow key={t.id} task={t} {...rowProps} />)}
             </ul>
           ) : (
-            <p className="empty">Nothing new for today.</p>
+            <p className="empty">
+              {filterName ? `Nothing new in ${filterName} today.` : 'Nothing new for today.'}
+            </p>
           )}
         </section>
 

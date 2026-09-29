@@ -7,19 +7,21 @@ import { CircleIcon, CheckCircleIcon, NoteIcon } from './Icons.jsx'
  *   task       – the task object
  *   areasById  – lookup of area id -> area, so the row can show names and colours
  *   todayISO   – today's local date, 'YYYY-MM-DD'
+ *   onToggle   – called with the task id when the circle is tapped
  */
-export default function TaskRow({ task, areasById, todayISO }) {
+export default function TaskRow({ task, areasById, todayISO, onToggle }) {
   const isDone = task.status === 'done'
   const daysCarried = daysBetween(task.originalDate, todayISO)
   const areas = task.areaIds.map((id) => areasById[id]).filter(Boolean)
 
   return (
     <li className={`task-row${isDone ? ' is-done' : ''}`}>
-      {/* Does nothing yet: tapping to complete arrives in step 3 */}
       <button
         type="button"
         className="tick"
+        aria-pressed={isDone}
         aria-label={isDone ? `Mark "${task.title}" not done` : `Mark "${task.title}" done`}
+        onClick={() => onToggle(task.id)}
       >
         {isDone ? <CheckCircleIcon /> : <CircleIcon />}
       </button>
