@@ -36,3 +36,14 @@ After running `001`, add `docket` to **Exposed schemas** in the project's Data A
 1. Copy `.env.example` to `.env.local` and fill in the Supabase URL and key (the same values Pantry uses).
 2. `npm install`
 3. `npm run dev`
+
+## Deploying
+
+Hosted on Vercel from the `main` branch; every push redeploys.
+
+1. Vercel: **Add New → Project**, import the `daily-docket` repo. Vite is detected automatically.
+2. Add the environment variables `VITE_SUPABASE_URL` and `VITE_SUPABASE_PUBLISHABLE_KEY` (same values as `.env.local`), then deploy.
+3. Custom domain: **Settings → Domains**, add `docket.preciousdoxa.com`, and add the CNAME record Vercel shows in Namecheap (host `docket`).
+4. Supabase: **Authentication → URL Configuration**, add the new address under **Redirect URLs**. Leave the Site URL on Pantry's address, since both apps share the project.
+
+`vercel.json` sends every path to `index.html`, so links like `/history` work on refresh.
