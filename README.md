@@ -27,6 +27,7 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 4. `004_close_day.sql` — applies the Close the day choices in one transaction
 5. `005_close_day_undo.sql` — adds restore, used by Undo and History
 6. `006_reopen_day.sql` — records each close so the day can be reopened until midnight
+7. `007_push.sql` — one row per device with notifications switched on
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 
@@ -37,6 +38,15 @@ After running `001`, add `docket` to **Exposed schemas** in the project's Data A
 1. Copy `.env.example` to `.env.local` and fill in the Supabase URL and key (the same values Pantry uses).
 2. `npm install`
 3. `npm run dev`
+
+## Push notifications
+
+1. `npx web-push generate-vapid-keys` prints a public and a private key.
+2. Public key: `VITE_VAPID_PUBLIC_KEY` in `.env.local` and in Vercel.
+3. Supabase **Edge Functions → Secrets**: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` (`mailto:` plus your email).
+4. Deploy `supabase/functions/send-test-push/index.ts` as an Edge Function named `send-test-push`.
+
+On iPhone, notifications only work from the home-screen app.
 
 ## Deploying
 

@@ -52,9 +52,9 @@ export default function Today({ areas, tasks, onToggle, closure, onReopen, userE
           </span>
         </div>
         <div className="header-actions">
-          <button type="button" className="icon-btn" aria-label="Areas and settings">
+          <Link to="/settings" className="icon-btn" aria-label="Settings">
             <SlidersIcon />
-          </button>
+          </Link>
           <Link to="/close" className="btn-dark as-link">Close day</Link>
         </div>
       </header>

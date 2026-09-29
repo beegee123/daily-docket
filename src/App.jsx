@@ -4,6 +4,7 @@ import Today from './pages/Today.jsx'
 import TaskForm from './pages/TaskForm.jsx'
 import CloseDay from './pages/CloseDay.jsx'
 import History from './pages/History.jsx'
+import Settings from './pages/Settings.jsx'
 import SignIn from './pages/SignIn.jsx'
 import { useDocket } from './hooks/useDocket.js'
 import { useSession } from './hooks/useSession.js'
@@ -88,6 +89,12 @@ function Docket({ user }) {
         <Route
           path="/history"
           element={<History areas={areas} userId={user.id} onChanged={refresh} announce={announce} />}
+        />
+        <Route
+          path="/settings"
+          element={
+            <Settings userEmail={user.email} onSignOut={() => supabase.auth.signOut()} announce={announce} />
+          }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
