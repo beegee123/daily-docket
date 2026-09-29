@@ -14,6 +14,25 @@ export function startOfLocalDayISO(date = new Date()) {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate()).toISOString()
 }
 
+/** A Date object N days before today (same time of day). */
+export function daysAgo(n) {
+  const d = new Date()
+  d.setDate(d.getDate() - n)
+  return d
+}
+
+/** 'Today', 'Yesterday', or 'Mon 28 Sep' for a 'YYYY-MM-DD' in the past. */
+export function formatPastDay(iso, todayISO = toLocalISODate()) {
+  const diff = daysBetween(iso, todayISO)
+  if (diff === 0) return 'Today'
+  if (diff === 1) return 'Yesterday'
+  const [y, m, d] = iso.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  const weekday = date.toLocaleDateString('en-US', { weekday: 'short' })
+  const month = date.toLocaleDateString('en-US', { month: 'short' })
+  return `${weekday} ${d} ${month}`
+}
+
 /** A date N days from today, e.g. daysFromToday(-3) for three days ago. */
 export function daysFromToday(n) {
   const d = new Date()

@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { Link, useNavigate } from 'react-router'
+import AreaChips from '../components/AreaChips.jsx'
 import TaskRow from '../components/TaskRow.jsx'
 import { MicIcon, PlusIcon, SlidersIcon } from '../components/Icons.jsx'
 import { formatHeaderDate, toLocalISODate } from '../lib/dates.js'
@@ -11,9 +13,8 @@ import { inArea, isCarried, isDoneOn, isOpen } from '../lib/tasks.js'
  * the screen draws, so the lists can never disagree with the tasks.
  */
 export default function Today({ areas, tasks, onToggle, userEmail, onSignOut }) {
-  // null = "All". Which chip is on is this screen's own business, so it
-  // lives here rather than in App.
-  const [areaFilter, setAreaFilter] = useState(null)
+  const [areaFilter, setAreaFilter] = useState(null) // null = All
+  const navigate = useNavigate()
 
   const todayISO = toLocalISODate()
   const areasById = Object.fromEntries(areas.map((a) => [a.id, a]))
@@ -53,7 +54,7 @@ export default function Today({ areas, tasks, onToggle, userEmail, onSignOut }) 
           <button type="button" className="icon-btn" aria-label="Areas and settings">
             <SlidersIcon />
           </button>
-          <button type="button" className="btn-dark">Close day</button>
+          <Link to="/close" className="btn-dark as-link">Close day</Link>
         </div>
       </header>
 
@@ -63,32 +64,7 @@ export default function Today({ areas, tasks, onToggle, userEmail, onSignOut }) 
         <a href="#">Routines</a>
       </nav>
 
-      <div className="chips" role="group" aria-label="Filter by area">
-        <button
-          type="button"
-          className={`chip${areaFilter === null ? ' is-on' : ''}`}
-          aria-pressed={areaFilter === null}
-          onClick={() => setAreaFilter(null)}
-        >
-          All
-        </button>
-        {areas.map((area) => {
-          const on = areaFilter === area.id
-          return (
-            <button
-              type="button"
-              key={area.id}
-              className={`chip${on ? ' is-on' : ''}`}
-              aria-pressed={on}
-              // Tapping the selected chip again goes back to All
-              onClick={() => setAreaFilter(on ? null : area.id)}
-            >
-              <span className="dot" style={{ background: on ? '#FFFFFF' : area.color }} />
-              {area.name}
-            </button>
-          )
-        })}
-      </div>
+      <AreaChips areas={areas} selected={areaFilter} onChange={setAreaFilter} />
 
       <main className="lists">
         {carried.length > 0 && (
@@ -128,24 +104,35 @@ export default function Today({ areas, tasks, onToggle, userEmail, onSignOut }) 
           </section>
         )}
 
-        <p className="signed-in">
-          Signed in as {userEmail} ·{' '}
-          <button type="button" className="link-btn" onClick={onSignOut}>
-            Sign out
-          </button>
-        </p>
+        <footer className="today-footer">
+          <Link to="/history" className="history-link">History: done and dropped tasks</Link>
+          <p className="signed-in">
+            Signed in as {userEmail} ·{' '}
+            <button type="button" className="link-btn" onClick={onSignOut}>
+              Sign out
+            </button>
+          </p>
+        </footer>
       </main>
 
-      {/* Quick capture works in step 6 */}
-      <form className="capture-bar" onSubmit={(e) => e.preventDefault()}>
+      {/* For now, typing then pressing Enter opens the form with the title
+          filled in. Step 11 teaches it to read "call bank, Home, Fri". */}
+      <form
+        className="capture-bar"
+        onSubmit={(e) => {
+          e.preventDefault()
+          const text = e.currentTarget.elements.capture.value.trim()
+          navigate(text ? `/task/new?title=${encodeURIComponent(text)}` : '/task/new')
+        }}
+      >
         <label className="visually-hidden" htmlFor="capture">Add a task</label>
         <input id="capture" placeholder="Add a task… “call bank, Home, Fri”" autoComplete="off" />
         <button type="button" className="capture-icon" aria-label="Speak a task">
           <MicIcon />
         </button>
-        <button type="submit" className="capture-add" aria-label="Add task">
+        <Link to="/task/new" className="capture-add" aria-label="New task">
           <PlusIcon />
-        </button>
+        </Link>
       </form>
     </div>
   )

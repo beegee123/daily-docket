@@ -13,7 +13,10 @@ export function useDocket(userId) {
   const [tasks, setTasks] = useState([])
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [error, setError] = useState(null)
+  // A short message at the bottom of the screen, optionally with a button:
+  // { message, action: { label, run } | null }
   const [notice, setNotice] = useState(null)
+  const announce = useCallback((message, action = null) => setNotice({ message, action }), [])
 
   // Fetch areas and tasks. `quiet` refreshes without the loading screen.
   const load = useCallback(async ({ quiet = false } = {}) => {
@@ -97,16 +100,27 @@ export function useDocket(userId) {
       await saveDoneState(after, userId)
     } catch {
       setTasks((prev) => prev.map((t) => (t.id === taskId ? before : t)))
-      setNotice("Couldn't save that. Check your connection and try again.")
+      announce("Couldn't save that. Check your connection and try again.")
     }
   }
 
-  // Hide the notice after a few seconds
+  // Hide the notice after a few seconds (longer if it has an Undo button)
   useEffect(() => {
     if (!notice) return
-    const timer = setTimeout(() => setNotice(null), 4000)
+    const timer = setTimeout(() => setNotice(null), notice.action ? 10000 : 4000)
     return () => clearTimeout(timer)
   }, [notice])
 
-  return { areas, tasks, status, error, notice, toggle, retry: () => load() }
+  return {
+    areas,
+    tasks,
+    status,
+    error,
+    notice,
+    toggle,
+    retry: () => load(),
+    refresh: () => load({ quiet: true }),
+    announce,
+    dismissNotice: () => setNotice(null),
+  }
 }

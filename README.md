@@ -23,6 +23,9 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 
 1. `001_docket_core.sql` — the `docket` schema, areas, tasks, the task–area link table and row-level security
 2. `002_realtime.sql` — turns on live sync for the docket tables
+3. `003_save_task.sql` — saves a task and its areas in one transaction
+4. `004_close_day.sql` — applies the Close the day choices in one transaction
+5. `005_close_day_undo.sql` — adds restore, used by Undo and History
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 

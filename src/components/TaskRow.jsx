@@ -1,3 +1,4 @@
+import { Link } from 'react-router'
 import { daysBetween, formatShortDate } from '../lib/dates.js'
 import { CircleIcon, CheckCircleIcon, NoteIcon } from './Icons.jsx'
 
@@ -27,7 +28,9 @@ export default function TaskRow({ task, areasById, todayISO, onToggle }) {
       </button>
 
       <div className="task-body">
-        <span className="task-title">{task.title}</span>
+        <Link to={`/task/${task.id}`} className="task-title">
+          {task.title}
+        </Link>
 
         <div className="task-meta">
           {areas.map((area) => (
