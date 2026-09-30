@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
 import { dropTask, fetchTask, saveTask } from '../lib/api.js'
 import { daysBetween, daysFromToday, formatShortDate, toLocalISODate } from '../lib/dates.js'
@@ -8,7 +8,7 @@ import { daysBetween, daysFromToday, formatShortDate, toLocalISODate } from '../
  * Every input is "controlled": its value lives in `form` state and each
  * keystroke updates that state, so the form is always the source of truth.
  */
-export default function TaskForm({ areas, onSaved }) {
+export default function TaskForm({ areas, onSaved, announce }) {
   const { id } = useParams() // undefined on /task/new
   const isNew = !id
   const [searchParams] = useSearchParams()
@@ -22,6 +22,9 @@ export default function TaskForm({ areas, onSaved }) {
   const [saveError, setSaveError] = useState(null)
   const [busy, setBusy] = useState(false)
   const [pickingDay, setPickingDay] = useState(false)
+  // "Save and add another": how many tasks added without leaving the form
+  const [addedCount, setAddedCount] = useState(0)
+  const titleRef = useRef(null)
 
   // Fill the form: blank for a new task, or from the database for an edit
   useEffect(() => {
@@ -82,7 +85,9 @@ export default function TaskForm({ areas, onSaved }) {
     return null
   }
 
-  async function handleSave(e) {
+  // `another`: stay on the form, keep the areas and day, clear the rest.
+  // Once you've used "Save and add another", pressing Enter keeps adding.
+  async function handleSave(e, { another = isNew && addedCount > 0 } = {}) {
     e.preventDefault()
     const issue = problem()
     if (issue) {
@@ -101,6 +106,14 @@ export default function TaskForm({ areas, onSaved }) {
         areaIds: form.areaIds,
       })
       onSaved()
+      if (another) {
+        announce(`Added: ${form.title.trim()}`)
+        setAddedCount((n) => n + 1)
+        setForm((prev) => ({ ...prev, title: '', notes: '', dueDate: '' }))
+        setBusy(false)
+        titleRef.current?.focus()
+        return
+      }
       navigate('/')
     } catch (err) {
       setSaveError(err.message)
@@ -149,17 +162,22 @@ export default function TaskForm({ areas, onSaved }) {
   return (
     <form className="screen task-form" onSubmit={handleSave} noValidate>
       <header className="form-header">
-        <Link to="/" className="text-btn">Cancel</Link>
+        <Link to="/" className="text-btn">{addedCount > 0 ? 'Done' : 'Cancel'}</Link>
         <h1 className="form-heading">{isNew ? 'New task' : 'Edit task'}</h1>
-        <button type="submit" className="btn-dark" disabled={busy}>
-          {busy ? 'Saving…' : 'Save'}
-        </button>
+        {addedCount > 0 && !form.title.trim() ? (
+          <Link to="/" className="btn-dark as-link">Done</Link>
+        ) : (
+          <button type="button" className="btn-dark" disabled={busy} onClick={(e) => handleSave(e, { another: false })}>
+            {busy ? 'Saving…' : 'Save'}
+          </button>
+        )}
       </header>
 
       <div className="form-body">
         <label className="field">
           <span className="field-caps">TASK</span>
           <input
+            ref={titleRef}
             className="title-input"
             value={form.title}
             onChange={(e) => update('title', e.target.value)}
@@ -274,6 +292,24 @@ export default function TaskForm({ areas, onSaved }) {
           <p className="form-error" role="alert">
             {saveError}
           </p>
+        )}
+
+        {isNew && (
+          <div className="add-another">
+            <button
+              type="button"
+              className="btn-secondary"
+              disabled={busy}
+              onClick={(e) => handleSave(e, { another: true })}
+            >
+              Save and add another
+            </button>
+            {addedCount > 0 && (
+              <span className="hint">
+                {addedCount} added so far · areas and day stay the same · Enter adds the next one
+              </span>
+            )}
+          </div>
         )}
 
         {!isNew && (

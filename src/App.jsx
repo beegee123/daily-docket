@@ -83,8 +83,8 @@ function Docket({ user }) {
             />
           }
         />
-        <Route path="/task/new" element={<TaskForm areas={areas} onSaved={refresh} />} />
-        <Route path="/task/:id" element={<TaskForm areas={areas} onSaved={refresh} />} />
+        <Route path="/task/new" element={<TaskForm areas={areas} onSaved={refresh} announce={announce} />} />
+        <Route path="/task/:id" element={<TaskForm areas={areas} onSaved={refresh} announce={announce} />} />
         <Route path="/close" element={<CloseDay areas={areas} tasks={tasks} onClosed={handleClosed} />} />
         <Route
           path="/history"

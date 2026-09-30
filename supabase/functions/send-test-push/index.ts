@@ -9,16 +9,22 @@
 import webpush from 'npm:web-push@3.6.7'
 import { createClient } from 'npm:@supabase/supabase-js@2'
 
+// The browser checks these before sending the real request ("preflight").
+// This is the full list of headers the Supabase library can send; if one
+// is missing here, the browser refuses and the app sees
+// "Failed to send a request to the Edge Function".
 const cors = {
   'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-retry-count, traceparent, tracestate, baggage',
+  'Access-Control-Allow-Methods': 'POST, GET, OPTIONS',
 }
 
 const json = (body: unknown, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { ...cors, 'Content-Type': 'application/json' } })
 
 Deno.serve(async (req) => {
-  if (req.method === 'OPTIONS') return new Response('ok', { headers: cors })
+  if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: cors })
 
   // Act AS the caller: their sign-in token rides along, so row-level
   // security limits this function to their own devices.

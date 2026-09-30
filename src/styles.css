@@ -558,3 +558,19 @@ a.icon-btn { color: var(--ink); }
 @media (prefers-reduced-motion: reduce) {
   .switch span { transition: none; }
 }
+
+/* ---------- Save and add another ---------- */
+
+.add-another { display: flex; flex-direction: column; gap: 8px; }
+.btn-secondary {
+  min-height: 48px;
+  padding: 0 18px;
+  border: 1px solid var(--cobalt);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  color: var(--cobalt);
+  font-size: 15px;
+  font-weight: 700;
+}
+.btn-secondary:disabled { opacity: .6; cursor: default; }
+.add-another .hint { margin-top: 0; }
