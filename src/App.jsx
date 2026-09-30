@@ -7,6 +7,7 @@ import History from './pages/History.jsx'
 import Settings from './pages/Settings.jsx'
 import Week from './pages/Week.jsx'
 import Day from './pages/Day.jsx'
+import ShiftPlan from './pages/ShiftPlan.jsx'
 import SignIn from './pages/SignIn.jsx'
 import { useDocket } from './hooks/useDocket.js'
 import { useSession } from './hooks/useSession.js'
@@ -93,6 +94,7 @@ function Docket({ user }) {
           element={<History areas={areas} userId={user.id} onChanged={refresh} announce={announce} />}
         />
         <Route path="/week" element={<Week areas={areas} changeSignal={tasks} />} />
+        <Route path="/shift/:areaId" element={<ShiftPlan areas={areas} onChanged={refresh} announce={announce} />} />
         <Route
           path="/day/:date"
           element={<Day areas={areas} userId={user.id} changeSignal={tasks} onChanged={refresh} announce={announce} />}

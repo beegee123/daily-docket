@@ -28,6 +28,7 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 5. `005_close_day_undo.sql` — adds restore, used by Undo and History
 6. `006_reopen_day.sql` — records each close so the day can be reopened until midnight
 7. `007_push.sql` — one row per device with notifications switched on
+8. `008_reschedule.sql` — moves many tasks to new days at once (Shift plan and its Undo)
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 

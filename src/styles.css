@@ -630,3 +630,37 @@ a.week-card:hover { color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 .day { padding-bottom: 40px; }
 .add-on-day { justify-content: center; gap: 8px; margin-top: 6px; }
 a.btn-secondary:hover { color: var(--cobalt); }
+
+/* ---------- Shift plan ---------- */
+
+.week-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: -4px 16px 8px;
+}
+
+.shift { padding-bottom: 40px; }
+.shift-title { display: flex; align-items: center; gap: 10px; }
+.shift-swatch { width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0; }
+
+.shift-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 18px 14px 12px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+}
+.shift-amount { display: flex; align-items: baseline; gap: 8px; }
+.shift-number { font-family: var(--font-display); font-size: 44px; font-weight: 600; letter-spacing: -.02em; }
+.shift-unit { font-size: 16px; font-weight: 600; color: var(--muted); }
+.shift-steps { width: 100%; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.shift-reset { min-height: 36px; }
+
+.shift-preview { display: flex; flex-direction: column; gap: 8px; }
+.shift-notes { margin: 0; padding: 0 4px 0 22px; display: flex; flex-direction: column; gap: 4px; font-size: 13px; line-height: 1.45; color: var(--muted); }
+
+.shift-footer { padding: 6px 0 0; }
+.centered-link { align-self: center; }

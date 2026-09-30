@@ -25,7 +25,11 @@ export default function Week({ areas, changeSignal }) {
   const weekStart = requested && startOfWeekISO(requested) >= thisWeek ? startOfWeekISO(requested) : thisWeek
   const weekEnd = addDaysISO(weekStart, 6)
 
-  const [areaFilter, setAreaFilter] = useState(null)
+  // The area filter lives in the address too (?area=...), so coming back
+  // from a day or from Shift plan keeps it
+  const requestedArea = params.get('area')
+  const areaFilter = areas.some((a) => a.id === requestedArea) ? requestedArea : null
+  const setAreaFilter = (id) => setParams(buildParams(weekStart, id), { replace: true })
   const [tasks, setTasks] = useState(null) // null = loading
   const [error, setError] = useState(null)
 
@@ -56,7 +60,13 @@ export default function Week({ areas, changeSignal }) {
   })
 
   const total = shown.length
-  const goTo = (start) => setParams(start === thisWeek ? {} : { start })
+  function buildParams(start, area) {
+    const next = {}
+    if (start !== thisWeek) next.start = start
+    if (area) next.area = area
+    return next
+  }
+  const goTo = (start) => setParams(buildParams(start, areaFilter))
   const { day: startDay, month: startMonth } = dayParts(weekStart)
   const { day: endDay, month: endMonth } = dayParts(weekEnd)
   const range =
@@ -89,10 +99,21 @@ export default function Week({ areas, changeSignal }) {
       <ViewSwitch current="week" />
       <AreaChips areas={areas} selected={areaFilter} onChange={setAreaFilter} />
 
-      {weekStart !== thisWeek && (
-        <button type="button" className="text-btn this-week" onClick={() => goTo(thisWeek)}>
-          Back to this week
-        </button>
+      {(weekStart !== thisWeek || areaFilter) && (
+        <div className="week-actions">
+          {weekStart !== thisWeek ? (
+            <button type="button" className="text-btn" onClick={() => goTo(thisWeek)}>
+              Back to this week
+            </button>
+          ) : (
+            <span />
+          )}
+          {areaFilter && (
+            <Link to={`/shift/${areaFilter}`} className="text-btn">
+              Shift {areasById[areaFilter].name} plan
+            </Link>
+          )}
+        </div>
       )}
 
       <main className="lists">

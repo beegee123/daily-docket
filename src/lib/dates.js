@@ -103,3 +103,11 @@ export function dayParts(iso) {
     month: d.toLocaleDateString('en-US', { month: 'short' }),
   }
 }
+
+/** 'Tue 28 Oct' for any 'YYYY-MM-DD'. */
+export function formatDayMonth(iso) {
+  const d = fromISODate(iso)
+  const weekday = d.toLocaleDateString('en-US', { weekday: 'short' })
+  const month = d.toLocaleDateString('en-US', { month: 'short' })
+  return `${weekday} ${d.getDate()} ${month}`
+}

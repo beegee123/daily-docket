@@ -215,3 +215,37 @@ export async function fetchTasksBetween(fromISO, toISO) {
   if (error) throw error
   return data.map(taskFromDb)
 }
+
+/**
+ * Every open task in one area, with all of its areas.
+ * Two steps: find the task ids linked to the area, then load those tasks
+ * (asking for them in batches keeps each request's address short).
+ */
+export async function fetchOpenInArea(areaId) {
+  const { data: links, error: linkError } = await supabase
+    .from('task_areas')
+    .select('task_id')
+    .eq('area_id', areaId)
+  if (linkError) throw linkError
+
+  const ids = [...new Set(links.map((l) => l.task_id))]
+  const tasks = []
+  for (let i = 0; i < ids.length; i += 100) {
+    const { data, error } = await supabase
+      .from('tasks')
+      .select(TASK_COLUMNS)
+      .in('id', ids.slice(i, i + 100))
+      .neq('status', 'done')
+      .is('dropped_at', null)
+    if (error) throw error
+    tasks.push(...data.map(taskFromDb))
+  }
+  return tasks
+}
+
+/** Move tasks to new days in one transaction (supabase/008_reschedule.sql). */
+export async function reschedule(items) {
+  const { data, error } = await supabase.rpc('reschedule', { p_items: items })
+  if (error) throw error
+  return data ?? 0
+}
