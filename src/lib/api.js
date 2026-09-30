@@ -201,3 +201,17 @@ export async function fetchOpenClosure(todayISO) {
   if (error) throw error
   return data ? { id: data.id, closedAt: data.closed_at } : null
 }
+
+/** Every task on a docket between two days (inclusive), open or done. */
+export async function fetchTasksBetween(fromISO, toISO) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(TASK_COLUMNS)
+    .is('dropped_at', null)
+    .gte('scheduled_date', fromISO)
+    .lte('scheduled_date', toISO)
+    .order('scheduled_date')
+    .order('created_at')
+  if (error) throw error
+  return data.map(taskFromDb)
+}

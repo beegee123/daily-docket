@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router'
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { dropTask, fetchTask, saveTask } from '../lib/api.js'
 import { daysBetween, daysFromToday, formatShortDate, toLocalISODate } from '../lib/dates.js'
 
@@ -13,6 +13,10 @@ export default function TaskForm({ areas, onSaved, announce }) {
   const isNew = !id
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
+  const location = useLocation()
+  // Back to wherever the form was opened from (Today, a day on the Week
+  // screen...). If the form was opened directly, fall back to Today.
+  const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/'))
 
   const todayISO = toLocalISODate()
   const tomorrowISO = daysFromToday(1)
@@ -33,7 +37,9 @@ export default function TaskForm({ areas, onSaved, announce }) {
         title: searchParams.get('title') ?? '',
         notes: '',
         areaIds: [],
-        scheduledDate: todayISO,
+        // Opened from a day on the Week screen: start on that day
+        scheduledDate:
+          searchParams.get('date') && searchParams.get('date') >= todayISO ? searchParams.get('date') : todayISO,
         dueDate: '',
         originalDate: null,
       })
@@ -114,7 +120,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
         titleRef.current?.focus()
         return
       }
-      navigate('/')
+      goBack()
     } catch (err) {
       setSaveError(err.message)
       setBusy(false)
@@ -127,7 +133,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
     try {
       await dropTask(id)
       onSaved()
-      navigate('/')
+      goBack()
     } catch (err) {
       setSaveError(err.message)
       setBusy(false)
@@ -162,10 +168,12 @@ export default function TaskForm({ areas, onSaved, announce }) {
   return (
     <form className="screen task-form" onSubmit={handleSave} noValidate>
       <header className="form-header">
-        <Link to="/" className="text-btn">{addedCount > 0 ? 'Done' : 'Cancel'}</Link>
+        <button type="button" className="text-btn" onClick={goBack}>
+          {addedCount > 0 ? 'Done' : 'Cancel'}
+        </button>
         <h1 className="form-heading">{isNew ? 'New task' : 'Edit task'}</h1>
         {addedCount > 0 && !form.title.trim() ? (
-          <Link to="/" className="btn-dark as-link">Done</Link>
+          <button type="button" className="btn-dark" onClick={goBack}>Done</button>
         ) : (
           <button type="button" className="btn-dark" disabled={busy} onClick={(e) => handleSave(e, { another: false })}>
             {busy ? 'Saving…' : 'Save'}

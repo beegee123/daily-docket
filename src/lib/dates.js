@@ -67,3 +67,39 @@ export function formatShortDate(iso, todayISO = toLocalISODate()) {
   if (diff > 1 && diff < 7) return date.toLocaleDateString('en-US', { weekday: 'short' })
   return `${d} ${date.toLocaleDateString('en-US', { month: 'short' })}`
 }
+
+/** 'YYYY-MM-DD' -> a local Date at midnight. */
+export function fromISODate(iso) {
+  const [y, m, d] = iso.split('-').map(Number)
+  return new Date(y, m - 1, d)
+}
+
+/** Add (or subtract) whole days to a 'YYYY-MM-DD'. */
+export function addDaysISO(iso, n) {
+  const d = fromISODate(iso)
+  d.setDate(d.getDate() + n)
+  return toLocalISODate(d)
+}
+
+/** The Monday of the week containing this date. */
+export function startOfWeekISO(iso = toLocalISODate()) {
+  const d = fromISODate(iso)
+  const shift = (d.getDay() + 6) % 7 // Monday = 0 ... Sunday = 6
+  d.setDate(d.getDate() - shift)
+  return toLocalISODate(d)
+}
+
+/** 'Thursday, 1 Oct' for a 'YYYY-MM-DD'. */
+export function formatLongDay(iso) {
+  return formatHeaderDate(fromISODate(iso))
+}
+
+/** { weekday: 'THU', day: 1, month: 'Oct' } for the week cards. */
+export function dayParts(iso) {
+  const d = fromISODate(iso)
+  return {
+    weekday: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+    day: d.getDate(),
+    month: d.toLocaleDateString('en-US', { month: 'short' }),
+  }
+}

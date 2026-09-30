@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import AreaChips from '../components/AreaChips.jsx'
 import TaskRow from '../components/TaskRow.jsx'
+import ViewSwitch from '../components/ViewSwitch.jsx'
 import { MicIcon, PlusIcon, SlidersIcon } from '../components/Icons.jsx'
 import { formatHeaderDate, toLocalISODate } from '../lib/dates.js'
 import { inArea, isCarried, isDoneOn, isOpen } from '../lib/tasks.js'
@@ -59,11 +60,7 @@ export default function Today({ areas, tasks, onToggle, closure, onReopen, userE
         </div>
       </header>
 
-      <nav className="view-switch" aria-label="Views">
-        <a href="#" className="is-on" aria-current="page">Today</a>
-        <a href="#">Week</a>
-        <a href="#">Routines</a>
-      </nav>
+      <ViewSwitch current="today" />
 
       <AreaChips areas={areas} selected={areaFilter} onChange={setAreaFilter} />
 
