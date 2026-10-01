@@ -45,7 +45,7 @@ After running `001`, add `docket` to **Exposed schemas** in the project's Data A
 1. `npx web-push generate-vapid-keys` prints a public and a private key.
 2. Public key: `VITE_VAPID_PUBLIC_KEY` in `.env.local` and in Vercel.
 3. Supabase **Edge Functions → Secrets**: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` (`mailto:` plus your email).
-4. Deploy `supabase/functions/send-test-push/index.ts` as an Edge Function named `send-test-push`.
+4. Deploy `supabase/functions/send-test-push/index.ts` as an Edge Function named `send-test-push`. In the dashboard editor, set the name box before deploying: it sets the function's address, which can't be changed later. The URL column should end in `/send-test-push`.
 
 On iPhone, notifications only work from the home-screen app.
 

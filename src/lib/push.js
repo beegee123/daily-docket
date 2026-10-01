@@ -7,6 +7,10 @@ import { supabase } from './supabase.js'
 
 const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY
 
+// The Edge Function's web address (its "slug"), as shown in the
+// dashboard's URL column. That's what the app calls, not the display name.
+const TEST_PUSH_FUNCTION = 'send-test-push'
+
 export const pushConfigured = Boolean(VAPID_PUBLIC_KEY)
 
 export function pushSupported() {
@@ -77,7 +81,7 @@ export async function turnOffPush() {
 
 /** Ask the server to send a test to all of my devices. */
 export async function sendTestPush() {
-  const { data, error } = await supabase.functions.invoke('send-test-push')
+  const { data, error } = await supabase.functions.invoke(TEST_PUSH_FUNCTION)
   if (error) {
     // Show the function's own message if it sent one
     const body = await error.context?.json?.().catch(() => null)
