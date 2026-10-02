@@ -102,7 +102,12 @@ function Docket({ user }) {
         <Route
           path="/settings"
           element={
-            <Settings userEmail={user.email} onSignOut={() => supabase.auth.signOut()} announce={announce} />
+            <Settings
+              userId={user.id}
+              userEmail={user.email}
+              onSignOut={() => supabase.auth.signOut()}
+              announce={announce}
+            />
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />

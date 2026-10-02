@@ -6,6 +6,7 @@ import {
   fetchTodayTasks,
   saveDoneState,
   seedStarterAreas,
+  syncTimezone,
 } from '../lib/api.js'
 import { startOfLocalDayISO, toLocalISODate } from '../lib/dates.js'
 import { toggleDone } from '../lib/tasks.js'
@@ -54,6 +55,9 @@ export function useDocket(userId) {
     ;(async () => {
       try {
         await seedStarterAreas()
+        // Digest times are in your own timezone; keep it current (travel!).
+        // Not worth stopping the app over if it fails.
+        syncTimezone(userId).catch((e) => console.warn('Timezone not saved', e.message))
       } catch (e) {
         if (!cancelled) {
           setError(e.message)

@@ -29,6 +29,8 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 6. `006_reopen_day.sql` — records each close so the day can be reopened until midnight
 7. `007_push.sql` — one row per device with notifications switched on
 8. `008_reschedule.sql` — moves many tasks to new days at once (Shift plan and its Undo)
+9. `009_digest.sql` — digest settings per person, and who is due a digest right now
+10. `010_digest_schedule.sql` — runs the digest every 15 minutes (needs `CRON_SECRET`, see the file)
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 
@@ -46,6 +48,8 @@ After running `001`, add `docket` to **Exposed schemas** in the project's Data A
 2. Public key: `VITE_VAPID_PUBLIC_KEY` in `.env.local` and in Vercel.
 3. Supabase **Edge Functions → Secrets**: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` (`mailto:` plus your email).
 4. Deploy `supabase/functions/send-test-push/index.ts` as an Edge Function named `send-test-push`. In the dashboard editor, set the name box before deploying: it sets the function's address, which can't be changed later. The URL column should end in `/send-test-push`.
+
+Morning digest: deploy `supabase/functions/send-digest/index.ts` as `send-digest` (set the name before deploying), add the secret `CRON_SECRET`, then run `010_digest_schedule.sql`.
 
 On iPhone, notifications only work from the home-screen app.
 

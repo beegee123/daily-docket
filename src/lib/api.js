@@ -249,3 +249,47 @@ export async function reschedule(items) {
   if (error) throw error
   return data ?? 0
 }
+
+// ---------- Morning digest settings (supabase/009_digest.sql) ----------
+
+/** The timezone this device is in, e.g. 'America/New_York'. */
+export function deviceTimezone() {
+  return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York'
+}
+
+/**
+ * Make sure a settings row exists and its timezone matches this device.
+ * Only the timezone is sent, so existing digest choices are left alone.
+ */
+export async function syncTimezone(userId) {
+  const { error } = await supabase
+    .from('user_settings')
+    .upsert({ user_id: userId, timezone: deviceTimezone() }, { onConflict: 'user_id' })
+  if (error) throw error
+}
+
+/** { timezone, digestOn, digestTime: '07:30', digestDays: 'weekdays' | 'every' } */
+export async function fetchSettings() {
+  const { data, error } = await supabase
+    .from('user_settings')
+    .select('timezone, digest_on, digest_time, digest_days')
+    .maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  return {
+    timezone: data.timezone,
+    digestOn: data.digest_on,
+    digestTime: data.digest_time.slice(0, 5), // '07:30:00' -> '07:30'
+    digestDays: data.digest_days,
+  }
+}
+
+/** Save digest choices. Pass only what changed. */
+export async function saveSettings(userId, { digestOn, digestTime, digestDays }) {
+  const row = { user_id: userId, timezone: deviceTimezone() }
+  if (digestOn !== undefined) row.digest_on = digestOn
+  if (digestTime !== undefined) row.digest_time = digestTime
+  if (digestDays !== undefined) row.digest_days = digestDays
+  const { error } = await supabase.from('user_settings').upsert(row, { onConflict: 'user_id' })
+  if (error) throw error
+}

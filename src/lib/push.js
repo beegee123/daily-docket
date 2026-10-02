@@ -10,6 +10,7 @@ const VAPID_PUBLIC_KEY = import.meta.env.VITE_VAPID_PUBLIC_KEY
 // The Edge Function's web address (its "slug"), as shown in the
 // dashboard's URL column. That's what the app calls, not the display name.
 const TEST_PUSH_FUNCTION = 'send-test-push'
+const DIGEST_FUNCTION = 'send-digest'
 
 export const pushConfigured = Boolean(VAPID_PUBLIC_KEY)
 
@@ -122,4 +123,14 @@ function base64UrlToBytes(base64Url) {
   const base64 = (base64Url + padding).replace(/-/g, '+').replace(/_/g, '/')
   const raw = atob(base64)
   return Uint8Array.from(raw, (c) => c.charCodeAt(0))
+}
+
+/** Send me today's morning digest right now (for testing). */
+export async function sendDigestNow() {
+  const { data, error } = await supabase.functions.invoke(DIGEST_FUNCTION, { body: {} })
+  if (error) {
+    const body = await error.context?.json?.().catch(() => null)
+    throw new Error(body?.error ?? error.message)
+  }
+  return data // { sent, removed, failed, skipped? }
 }

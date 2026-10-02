@@ -664,3 +664,10 @@ a.btn-secondary:hover { color: var(--cobalt); }
 
 .shift-footer { padding: 6px 0 0; }
 .centered-link { align-self: center; }
+
+/* ---------- Morning digest settings ---------- */
+
+.settings-row.is-muted { opacity: .5; }
+.time-input { height: 44px; width: 120px; flex-shrink: 0; }
+.settings-row .chip-row { flex-wrap: nowrap; }
+.chip:disabled { cursor: default; }
