@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import { dropTask, fetchTask, saveTask } from '../lib/api.js'
 import { daysBetween, daysFromToday, formatShortDate, toLocalISODate } from '../lib/dates.js'
+import { nameFor, usePeople } from '../lib/people.js'
 
 /**
  * Add a task (/task/new) or edit one (/task/:id).
@@ -14,6 +15,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
   const location = useLocation()
+  const { meId, people, areaPeople } = usePeople()
   // Back to wherever the form was opened from (Today, a day on the Week
   // screen...). If the form was opened directly, fall back to Today.
   const goBack = () => (location.key !== 'default' ? navigate(-1) : navigate('/'))
@@ -41,6 +43,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
         scheduledDate:
           searchParams.get('date') && searchParams.get('date') >= todayISO ? searchParams.get('date') : todayISO,
         dueDate: '',
+        assignedTo: null,
         originalDate: null,
       })
       return
@@ -60,6 +63,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
           areaIds: task.areaIds,
           scheduledDate: task.scheduledDate,
           dueDate: task.dueDate ?? '',
+          assignedTo: task.assignedTo ?? null,
           originalDate: task.originalDate,
         })
       })
@@ -110,6 +114,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
         scheduledDate: form.scheduledDate,
         dueDate: form.dueDate,
         areaIds: form.areaIds,
+        assignedTo: assignee,
       })
       onSaved()
       if (another) {
@@ -157,6 +162,13 @@ export default function TaskForm({ areas, onSaved, announce }) {
       </div>
     )
   }
+
+  // Who can this task be assigned to? Everyone in its shared areas.
+  // Only offered when one of the chosen areas is shared.
+  const eligible = [...new Set(form.areaIds.flatMap((id) => areaPeople[id] ?? []))]
+  const canAssign = eligible.length > 1
+  // If the areas change and the assignee isn't in them any more, drop it
+  const assignee = canAssign && eligible.includes(form.assignedTo) ? form.assignedTo : null
 
   // Which "On my docket" chip is lit
   const day =
@@ -268,6 +280,33 @@ export default function TaskForm({ areas, onSaved, announce }) {
             </span>
           )}
         </fieldset>
+
+        {canAssign && (
+          <fieldset className="field">
+            <legend className="field-caps">ASSIGNED TO</legend>
+            <div className="chip-row">
+              <button
+                type="button"
+                className={`chip chip-lg${assignee === null ? ' is-on' : ''}`}
+                aria-pressed={assignee === null}
+                onClick={() => update('assignedTo', null)}
+              >
+                Anyone
+              </button>
+              {[meId, ...eligible.filter((id) => id !== meId)].map((id) => (
+                <button
+                  key={id}
+                  type="button"
+                  className={`chip chip-lg${assignee === id ? ' is-on' : ''}`}
+                  aria-pressed={assignee === id}
+                  onClick={() => update('assignedTo', id)}
+                >
+                  {nameFor(id, meId, people)}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         <label className="field">
           <span className="field-caps">DUE DATE · OPTIONAL</span>

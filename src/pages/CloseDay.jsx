@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { closeDayWithRecord } from '../lib/api.js'
 import { daysBetween, daysFromToday, formatShortDate, toLocalISODate } from '../lib/dates.js'
-import { isCarried, isDoneOn, isOpen } from '../lib/tasks.js'
+import { isCarried, isDoneOn, isMyJob, isOpen } from '../lib/tasks.js'
 
 /**
  * Close the day: decide where each open task goes.
@@ -16,11 +16,11 @@ export default function CloseDay({ areas, tasks, userId, onClosed }) {
   const areasById = Object.fromEntries(areas.map((a) => [a.id, a]))
 
   // Carry-overs first (oldest first), then today's
-  // Only tasks you added: closing your day never moves someone else's
-  // shared task (their own close handles those)
-  const othersOpen = tasks.filter((t) => isOpen(t, todayISO) && t.createdBy && t.createdBy !== userId).length
+  // Only your jobs: assigned to you, or unassigned and added by you.
+  // Closing your day never moves someone else's task.
+  const othersOpen = tasks.filter((t) => isOpen(t, todayISO) && !isMyJob(t, userId)).length
   const open = tasks
-    .filter((t) => isOpen(t, todayISO) && (!t.createdBy || t.createdBy === userId))
+    .filter((t) => isOpen(t, todayISO) && isMyJob(t, userId))
     .sort((a, b) => {
       const ac = isCarried(a, todayISO)
       const bc = isCarried(b, todayISO)
@@ -93,7 +93,7 @@ export default function CloseDay({ areas, tasks, userId, onClosed }) {
         </p>
         {othersOpen > 0 && (
           <p className="hint">
-            {othersOpen} shared {othersOpen === 1 ? 'task' : 'tasks'} added by others {othersOpen === 1 ? "isn't" : "aren't"} included.
+            {othersOpen} shared {othersOpen === 1 ? 'task' : 'tasks'} for someone else {othersOpen === 1 ? "isn't" : "aren't"} included.
           </p>
         )}
       </header>

@@ -2,7 +2,7 @@
  * The row of area filter chips. `selected` is an area id, or null for All.
  * Tapping the selected chip again goes back to All.
  */
-export default function AreaChips({ areas, selected, onChange }) {
+export default function AreaChips({ areas, selected, onChange, mine = null }) {
   return (
     <div className="chips" role="group" aria-label="Filter by area">
       <button
@@ -13,6 +13,16 @@ export default function AreaChips({ areas, selected, onChange }) {
       >
         All
       </button>
+      {mine && (
+        <button
+          type="button"
+          className={`chip chip-mine${mine.on ? ' is-on' : ''}`}
+          aria-pressed={mine.on}
+          onClick={mine.onToggle}
+        >
+          Mine
+        </button>
+      )}
       {areas.map((area) => {
         const on = selected === area.id
         return (

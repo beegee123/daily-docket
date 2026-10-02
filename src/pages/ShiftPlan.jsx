@@ -3,6 +3,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router'
 import { fetchOpenInArea, reschedule } from '../lib/api.js'
 import { formatDayMonth, toLocalISODate } from '../lib/dates.js'
 import { planShift } from '../lib/shift.js'
+import { isMyJob } from '../lib/tasks.js'
 
 const STEPS = [-7, -3, -1, 1, 3, 7]
 const signed = (n) => `${n > 0 ? '+' : n < 0 ? '−' : ''}${Math.abs(n)}`
@@ -27,8 +28,8 @@ export default function ShiftPlan({ areas, userId, onChanged, announce }) {
     if (!area) return
     let cancelled = false
     fetchOpenInArea(area.id)
-      // Only tasks you added; in a shared area, others' tasks stay put
-      .then((rows) => !cancelled && setTasks(rows.filter((t) => !t.createdBy || t.createdBy === userId)))
+      // Only your jobs; in a shared area, other people's tasks stay put
+      .then((rows) => !cancelled && setTasks(rows.filter((t) => isMyJob(t, userId))))
       .catch((e) => !cancelled && setError(e.message))
     return () => {
       cancelled = true
@@ -79,7 +80,7 @@ export default function ShiftPlan({ areas, userId, onChanged, announce }) {
           {area.name}
         </h1>
         <p className="lead">
-          Move every open {area.name} task you added earlier or later. Done tasks stay where they are.
+          Move every open {area.name} task that's yours earlier or later. Done tasks stay where they are.
         </p>
       </header>
 

@@ -1,10 +1,18 @@
 import { createContext, useContext } from 'react'
 
 /**
- * Who's who, for "added by" tags. Provided once in App:
- *   { meId, people: { [userId]: email } }
+ * Who's who. Provided once in App:
+ *   meId        – the signed-in person
+ *   people      – { [userId]: email } for everyone I share an area with
+ *   areaPeople  – { [areaId]: [userId, ...] } owner and joined members
  */
-export const PeopleContext = createContext({ meId: null, people: {} })
+export const PeopleContext = createContext({ meId: null, people: {}, areaPeople: {} })
+
+/** Is an area shared (more than one person in it)? */
+export const isShared = (areaPeople, areaId) => (areaPeople[areaId]?.length ?? 0) > 1
+
+/** 'Me' for myself, otherwise a short name. */
+export const nameFor = (userId, meId, people) => (userId === meId ? 'Me' : shortName(people[userId]))
 
 export const usePeople = () => useContext(PeopleContext)
 

@@ -5,7 +5,8 @@ import TaskRow from '../components/TaskRow.jsx'
 import ViewSwitch from '../components/ViewSwitch.jsx'
 import { MicIcon, PlusIcon, SlidersIcon } from '../components/Icons.jsx'
 import { formatHeaderDate, toLocalISODate } from '../lib/dates.js'
-import { inArea, isCarried, isDoneOn, isOpen } from '../lib/tasks.js'
+import { inArea, isCarried, isDoneOn, isForMe, isOpen } from '../lib/tasks.js'
+import { isShared, usePeople } from '../lib/people.js'
 
 /**
  * The Today screen.
@@ -26,7 +27,12 @@ export default function Today({ areas, tasks, onToggle, closure, onReopen, userE
   const carriedCount = tasks.filter((t) => isCarried(t, todayISO)).length
 
   // The lists respect the selected area
-  const shown = tasks.filter((t) => inArea(t, areaFilter))
+  // "Mine": hide tasks assigned to someone else. Only offered once
+  // something is shared, since before that everything is yours anyway.
+  const { meId, areaPeople } = usePeople()
+  const anyShared = areas.some((a) => isShared(areaPeople, a.id))
+  const [mineOnly, setMineOnly] = useState(false)
+  const shown = tasks.filter((t) => inArea(t, areaFilter) && (!mineOnly || !anyShared || isForMe(t, meId)))
 
   const carried = shown
     .filter((t) => isCarried(t, todayISO))
@@ -62,7 +68,12 @@ export default function Today({ areas, tasks, onToggle, closure, onReopen, userE
 
       <ViewSwitch current="today" />
 
-      <AreaChips areas={areas} selected={areaFilter} onChange={setAreaFilter} />
+      <AreaChips
+        areas={areas}
+        selected={areaFilter}
+        onChange={setAreaFilter}
+        mine={anyShared ? { on: mineOnly, onToggle: () => setMineOnly((v) => !v) } : null}
+      />
 
       {closure && (
         <div className="closed-bar" role="status">

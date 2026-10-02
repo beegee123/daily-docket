@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import {
   acceptMyInvites,
   fetchAreas,
+  fetchMembers,
   fetchPeople,
   fetchOpenClosure,
   fetchTodayTasks,
@@ -21,6 +22,7 @@ export function useDocket(userId) {
   const [areas, setAreas] = useState([])
   const [tasks, setTasks] = useState([])
   const [people, setPeople] = useState({}) // { userId: email } of people I share with
+  const [areaPeople, setAreaPeople] = useState({}) // { areaId: [userId] } who's in each area
   const [closure, setClosure] = useState(null) // today's close, if not reopened
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [error, setError] = useState(null)
@@ -34,12 +36,20 @@ export function useDocket(userId) {
     if (!quiet) setStatus('loading')
     try {
       const now = new Date()
-      const [nextAreas, nextTasks, nextClosure, nextPeople] = await Promise.all([
+      const [nextAreas, nextTasks, nextClosure, nextPeople, members] = await Promise.all([
         fetchAreas(),
         fetchTodayTasks(toLocalISODate(now), startOfLocalDayISO(now)),
         fetchOpenClosure(toLocalISODate(now)),
         fetchPeople().catch(() => ({})), // tags are a nicety
+        fetchMembers().catch(() => []),
       ])
+      // Who's in each area: its owner plus everyone who has joined
+      const byArea = {}
+      for (const a of nextAreas) byArea[a.id] = [a.ownerId]
+      for (const m of members) {
+        if (m.joined && byArea[m.areaId] && !byArea[m.areaId].includes(m.userId)) byArea[m.areaId].push(m.userId)
+      }
+      setAreaPeople(byArea)
       // Your own areas first (in your order), then areas shared with you
       nextAreas.sort((a, b) => (a.ownerId === userId) === (b.ownerId === userId) ? 0 : a.ownerId === userId ? -1 : 1)
       setAreas(nextAreas)
@@ -140,6 +150,7 @@ export function useDocket(userId) {
     areas,
     tasks,
     people,
+    areaPeople,
     closure,
     status,
     error,

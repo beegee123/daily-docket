@@ -33,6 +33,7 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 10. `010_digest_schedule.sql` — runs the digest every 15 minutes (needs `CRON_SECRET`, see the file)
 11. `011_manage_areas.sql` — delete an area safely (moving its tasks) and reorder areas
 12. `012_share_areas.sql` — share an area by email; new security rules for shared areas
+13. `013_assign.sql` — assign tasks in shared areas, and notify the assignee (redeploy `send-digest` too)
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 

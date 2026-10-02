@@ -23,6 +23,8 @@ function taskFromDb(row) {
     completedAt: row.completed_at,
     droppedAt: row.dropped_at,
     createdBy: row.created_by,
+    assignedTo: row.assigned_to,
+    completedBy: row.completed_by,
     areaIds: (row.task_areas ?? []).map((link) => link.area_id),
   }
 }
@@ -50,7 +52,7 @@ export async function fetchAreas() {
  * so "today" means today where you are, not today in UTC.
  */
 const TASK_COLUMNS =
-  'id, title, notes, status, scheduled_date, original_date, due_date, completed_at, dropped_at, created_by, task_areas(area_id)'
+  'id, title, notes, status, scheduled_date, original_date, due_date, completed_at, dropped_at, created_by, assigned_to, completed_by, task_areas(area_id)'
 
 export async function fetchTodayTasks(todayISO, startOfTodayISO) {
   const { data, error } = await supabase
@@ -96,7 +98,7 @@ export async function fetchTask(id) {
  * Create or update a task and its areas in one transaction
  * (see supabase/003_save_task.sql). Returns the task id.
  */
-export async function saveTask({ id = null, title, notes, scheduledDate, dueDate, areaIds }) {
+export async function saveTask({ id = null, title, notes, scheduledDate, dueDate, areaIds, assignedTo = null }) {
   const { data, error } = await supabase.rpc('save_task', {
     p_id: id,
     p_title: title,
@@ -104,6 +106,7 @@ export async function saveTask({ id = null, title, notes, scheduledDate, dueDate
     p_scheduled_date: scheduledDate,
     p_due_date: dueDate || null,
     p_area_ids: areaIds,
+    p_assigned_to: assignedTo || null,
   })
   if (error) throw error
   return data

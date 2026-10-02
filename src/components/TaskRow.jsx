@@ -1,7 +1,7 @@
 import { Link } from 'react-router'
 import { daysBetween, formatShortDate } from '../lib/dates.js'
 import { CircleIcon, CheckCircleIcon, NoteIcon } from './Icons.jsx'
-import { shortName, usePeople } from '../lib/people.js'
+import { nameFor, shortName, usePeople } from '../lib/people.js'
 
 /**
  * One task on the docket.
@@ -15,9 +15,10 @@ export default function TaskRow({ task, areasById, todayISO, onToggle }) {
   const isDone = task.status === 'done'
   const daysCarried = daysBetween(task.originalDate, todayISO)
   const areas = task.areaIds.map((id) => areasById[id]).filter(Boolean)
-  // In a shared area: show who added a task, unless it was me
+  // In shared areas: whose job it is, who added it, who finished it
   const { meId, people } = usePeople()
-  const byOther = task.createdBy && meId && task.createdBy !== meId
+  const byOther = !task.assignedTo && task.createdBy && meId && task.createdBy !== meId
+  const doneByOther = isDone && task.completedBy && meId && task.completedBy !== meId
 
   return (
     <li className={`task-row${isDone ? ' is-done' : ''}`}>
@@ -50,7 +51,13 @@ export default function TaskRow({ task, areasById, todayISO, onToggle }) {
             </span>
           )}
 
+          {task.assignedTo && !isDone && (
+            <span className={`who-tag${task.assignedTo === meId ? ' is-me' : ''}`}>
+              → {nameFor(task.assignedTo, meId, people)}
+            </span>
+          )}
           {byOther && <span className="who-tag">by {shortName(people[task.createdBy])}</span>}
+          {doneByOther && <span className="who-tag">✓ by {shortName(people[task.completedBy])}</span>}
 
           {task.status === 'doing' && <span>In progress</span>}
 

@@ -33,7 +33,7 @@ export default function App() {
 }
 
 function Docket({ user }) {
-  const { areas, tasks, people, closure, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
+  const { areas, tasks, people, areaPeople, closure, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
     useDocket(user.id)
 
   if (status === 'loading') return <StatusScreen title="Loading your docket…" />
@@ -72,7 +72,7 @@ function Docket({ user }) {
 
   // One address per screen, so the phone's back button works
   return (
-    <PeopleContext.Provider value={{ meId: user.id, people }}>
+    <PeopleContext.Provider value={{ meId: user.id, people, areaPeople }}>
       <Routes>
         <Route
           path="/"

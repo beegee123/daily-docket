@@ -7,6 +7,9 @@
 //     now and sends each of them their digest.
 //  2. A signed-in person tapping "Send today's digest now" in Settings. Only
 //     their own digest is sent, whatever the time, for testing.
+//  3. The database, when a task is assigned to someone (013_assign.sql). It
+//     sends x-cron-secret plus { assigned_task, assigned_by } and the
+//     assignee gets "Bee assigned you: Take out bins".
 //
 // Secrets it needs (Edge Functions -> Secrets):
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT  (already there for send-test-push)
@@ -45,7 +48,8 @@ async function sendDigest(admin: Admin, userId: string, todayISO: string): Promi
   const { data: tasks, error } = await admin
     .from('tasks')
     .select('title, original_date')
-    .eq('created_by', userId)
+    // My job: assigned to me, or unassigned and added by me
+    .or(`assigned_to.eq.${userId},and(assigned_to.is.null,created_by.eq.${userId})`)
     .neq('status', 'done')
     .is('dropped_at', null)
     .lte('scheduled_date', todayISO)
@@ -68,6 +72,11 @@ async function sendDigest(admin: Admin, userId: string, todayISO: string): Promi
     tag: 'docket-digest', // a newer digest replaces an older one
   })
 
+  return await sendToUser(admin, userId, payload)
+}
+
+/** Push one message to every device a person has switched on. */
+async function sendToUser(admin: Admin, userId: string, payload: string): Promise<Result> {
   const { data: devices, error: devError } = await admin
     .from('push_subscriptions')
     .select('id, endpoint, p256dh, auth')
@@ -96,6 +105,35 @@ async function sendDigest(admin: Admin, userId: string, todayISO: string): Promi
   return result
 }
 
+/** "Bee assigned you: Take out bins" to the person a task was assigned to. */
+async function sendAssignment(admin: Admin, taskId: string, assignedBy: string | null): Promise<Result> {
+  const { data: task, error } = await admin
+    .from('tasks')
+    .select('id, title, assigned_to, status, dropped_at')
+    .eq('id', taskId)
+    .maybeSingle()
+  if (error) throw error
+  if (!task?.assigned_to || task.status === 'done' || task.dropped_at) {
+    return { sent: 0, removed: 0, failed: 0, skipped: 'nothing to tell' }
+  }
+
+  let who = 'Someone'
+  if (assignedBy) {
+    const { data } = await admin.auth.admin.getUserById(assignedBy)
+    const local = data?.user?.email?.split('@')[0]
+    if (local) who = local.charAt(0).toUpperCase() + local.slice(1)
+  }
+  const title = task.title.length > 80 ? task.title.slice(0, 77) + '…' : task.title
+
+  const payload = JSON.stringify({
+    title: 'New task for you',
+    body: `${who} assigned you: ${title}`,
+    url: `/task/${task.id}`,
+    tag: `docket-assigned-${task.id}`,
+  })
+  return await sendToUser(admin, task.assigned_to, payload)
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: cors })
 
@@ -115,6 +153,17 @@ Deno.serve(async (req) => {
   const given = req.headers.get('x-cron-secret')
   if (given !== null) {
     if (!cronSecret || given !== cronSecret) return json({ error: 'Not allowed.' }, 401)
+
+    // From the database: a task was just assigned to someone
+    const body = await req.json().catch(() => ({}))
+    if (body?.assigned_task) {
+      try {
+        return json(await sendAssignment(admin, String(body.assigned_task), body.assigned_by ?? null))
+      } catch (e) {
+        console.error('Assignment push failed', (e as Error).message)
+        return json({ error: (e as Error).message }, 500)
+      }
+    }
 
     const { data: due, error } = await admin.rpc('claim_digests')
     if (error) {

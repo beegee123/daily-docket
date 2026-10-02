@@ -44,3 +44,18 @@ export function reopenTask(task) {
 export function toggleDone(task) {
   return task.status === 'done' ? reopenTask(task) : completeTask(task)
 }
+
+/**
+ * Is this task my job? Assigned to me, or unassigned and added by me.
+ * (A task I added but assigned to someone else is theirs.)
+ * Tasks loaded before sharing existed have no createdBy: treat as mine.
+ */
+export function isMyJob(task, meId) {
+  if (task.assignedTo) return task.assignedTo === meId
+  return !task.createdBy || task.createdBy === meId
+}
+
+/** For the "Mine" filter: assigned to me, or not assigned to anyone. */
+export function isForMe(task, meId) {
+  return !task.assignedTo || task.assignedTo === meId
+}

@@ -773,3 +773,8 @@ a.btn-secondary:hover { color: var(--cobalt); }
 .member-status.is-joined { background: #E4E9F7; color: var(--ink); }
 .invite-row { display: flex; gap: 8px; }
 .invite-row .box-input { flex: 1; min-width: 0; height: 44px; }
+
+/* ---------- Assigning ---------- */
+
+.who-tag.is-me { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
+.chip-mine { font-weight: 700; }

@@ -5,6 +5,7 @@ import { CheckCircleIcon } from '../components/Icons.jsx'
 import { fetchDoneSince, fetchDropped, restoreTask, saveDoneState } from '../lib/api.js'
 import { daysAgo, formatPastDay, startOfLocalDayISO, toLocalISODate } from '../lib/dates.js'
 import { inArea, reopenTask } from '../lib/tasks.js'
+import { shortName, usePeople } from '../lib/people.js'
 
 const DAYS_BACK = 30
 
@@ -180,6 +181,8 @@ export default function History({ areas, userId, onChanged, announce }) {
 }
 
 function AreaLine({ task, areasById, children }) {
+  const { meId, people } = usePeople()
+  const doneByOther = task.status === 'done' && task.completedBy && task.completedBy !== meId
   return (
     <div className="task-meta">
       {task.areaIds
@@ -191,6 +194,7 @@ function AreaLine({ task, areasById, children }) {
             {area.name}
           </span>
         ))}
+      {doneByOther && <span className="who-tag">✓ by {shortName(people[task.completedBy])}</span>}
       {children}
     </div>
   )
