@@ -1,6 +1,7 @@
 import { Link } from 'react-router'
 import { daysBetween, formatShortDate } from '../lib/dates.js'
 import { CircleIcon, CheckCircleIcon, NoteIcon } from './Icons.jsx'
+import { shortName, usePeople } from '../lib/people.js'
 
 /**
  * One task on the docket.
@@ -14,6 +15,9 @@ export default function TaskRow({ task, areasById, todayISO, onToggle }) {
   const isDone = task.status === 'done'
   const daysCarried = daysBetween(task.originalDate, todayISO)
   const areas = task.areaIds.map((id) => areasById[id]).filter(Boolean)
+  // In a shared area: show who added a task, unless it was me
+  const { meId, people } = usePeople()
+  const byOther = task.createdBy && meId && task.createdBy !== meId
 
   return (
     <li className={`task-row${isDone ? ' is-done' : ''}`}>
@@ -45,6 +49,8 @@ export default function TaskRow({ task, areasById, todayISO, onToggle }) {
               ↻ {daysCarried} {daysCarried === 1 ? 'day' : 'days'}
             </span>
           )}
+
+          {byOther && <span className="who-tag">by {shortName(people[task.createdBy])}</span>}
 
           {task.status === 'doing' && <span>In progress</span>}
 

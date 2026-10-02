@@ -12,7 +12,7 @@ const dayWord = (n) => (Math.abs(n) === 1 ? 'day' : 'days')
  * Slide every open task in one area forward or back by N days.
  * Nothing is saved until "Shift"; then Undo is offered for a few seconds.
  */
-export default function ShiftPlan({ areas, onChanged, announce }) {
+export default function ShiftPlan({ areas, userId, onChanged, announce }) {
   const { areaId } = useParams()
   const navigate = useNavigate()
   const area = areas.find((a) => a.id === areaId)
@@ -27,12 +27,13 @@ export default function ShiftPlan({ areas, onChanged, announce }) {
     if (!area) return
     let cancelled = false
     fetchOpenInArea(area.id)
-      .then((rows) => !cancelled && setTasks(rows))
+      // Only tasks you added; in a shared area, others' tasks stay put
+      .then((rows) => !cancelled && setTasks(rows.filter((t) => !t.createdBy || t.createdBy === userId)))
       .catch((e) => !cancelled && setError(e.message))
     return () => {
       cancelled = true
     }
-  }, [area])
+  }, [area, userId])
 
   if (!area) return <Navigate to="/week" replace />
 
@@ -77,7 +78,9 @@ export default function ShiftPlan({ areas, onChanged, announce }) {
           <span className="shift-swatch" style={{ background: area.color }} aria-hidden="true" />
           {area.name}
         </h1>
-        <p className="lead">Move every open {area.name} task earlier or later. Done tasks stay where they are.</p>
+        <p className="lead">
+          Move every open {area.name} task you added earlier or later. Done tasks stay where they are.
+        </p>
       </header>
 
       <main className="lists">

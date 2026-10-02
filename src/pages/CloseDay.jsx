@@ -9,15 +9,18 @@ import { isCarried, isDoneOn, isOpen } from '../lib/tasks.js'
  * Every task starts on "Tomorrow", so one tap on Confirm rolls
  * everything forward. Nothing is saved until Confirm.
  */
-export default function CloseDay({ areas, tasks, onClosed }) {
+export default function CloseDay({ areas, tasks, userId, onClosed }) {
   const navigate = useNavigate()
   const todayISO = toLocalISODate()
   const tomorrowISO = daysFromToday(1)
   const areasById = Object.fromEntries(areas.map((a) => [a.id, a]))
 
   // Carry-overs first (oldest first), then today's
+  // Only tasks you added: closing your day never moves someone else's
+  // shared task (their own close handles those)
+  const othersOpen = tasks.filter((t) => isOpen(t, todayISO) && t.createdBy && t.createdBy !== userId).length
   const open = tasks
-    .filter((t) => isOpen(t, todayISO))
+    .filter((t) => isOpen(t, todayISO) && (!t.createdBy || t.createdBy === userId))
     .sort((a, b) => {
       const ac = isCarried(a, todayISO)
       const bc = isCarried(b, todayISO)
@@ -88,6 +91,11 @@ export default function CloseDay({ areas, tasks, onClosed }) {
             ? `${doneCount} done and nothing left open.`
             : `${doneCount} done, ${open.length} still open. Choose where each one goes, or roll them all to tomorrow.`}
         </p>
+        {othersOpen > 0 && (
+          <p className="hint">
+            {othersOpen} shared {othersOpen === 1 ? 'task' : 'tasks'} added by others {othersOpen === 1 ? "isn't" : "aren't"} included.
+          </p>
+        )}
       </header>
 
       {open.length === 0 ? (

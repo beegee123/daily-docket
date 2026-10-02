@@ -736,3 +736,40 @@ a.btn-secondary:hover { color: var(--cobalt); }
   font-weight: 700;
 }
 .btn-danger:disabled { opacity: .6; cursor: default; }
+
+/* ---------- Sharing ---------- */
+
+.who-tag {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 1px 7px;
+}
+
+.shared-section { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }
+.danger-text { color: #A3261B; }
+
+.share-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-control);
+  background: var(--paper);
+}
+.member-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.member-row { display: flex; align-items: center; gap: 8px; min-height: 44px; }
+.member-email { flex: 1; min-width: 0; font-size: 14px; font-weight: 600; overflow-wrap: anywhere; }
+.member-status {
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 6px;
+  padding: 2px 7px;
+  background: #FFF6DC;
+  color: #5C4300;
+}
+.member-status.is-joined { background: #E4E9F7; color: var(--ink); }
+.invite-row { display: flex; gap: 8px; }
+.invite-row .box-input { flex: 1; min-width: 0; height: 44px; }

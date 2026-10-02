@@ -14,6 +14,7 @@ import { useDocket } from './hooks/useDocket.js'
 import { useSession } from './hooks/useSession.js'
 import { reopenDay } from './lib/api.js'
 import { configError, supabase } from './lib/supabase.js'
+import { PeopleContext } from './lib/people.js'
 
 // Which screen to show: setup message, loading, sign-in, or your docket.
 export default function App() {
@@ -32,7 +33,7 @@ export default function App() {
 }
 
 function Docket({ user }) {
-  const { areas, tasks, closure, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
+  const { areas, tasks, people, closure, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
     useDocket(user.id)
 
   if (status === 'loading') return <StatusScreen title="Loading your docket…" />
@@ -71,7 +72,7 @@ function Docket({ user }) {
 
   // One address per screen, so the phone's back button works
   return (
-    <>
+    <PeopleContext.Provider value={{ meId: user.id, people }}>
       <Routes>
         <Route
           path="/"
@@ -89,18 +90,18 @@ function Docket({ user }) {
         />
         <Route path="/task/new" element={<TaskForm areas={areas} onSaved={refresh} announce={announce} />} />
         <Route path="/task/:id" element={<TaskForm areas={areas} onSaved={refresh} announce={announce} />} />
-        <Route path="/close" element={<CloseDay areas={areas} tasks={tasks} onClosed={handleClosed} />} />
+        <Route path="/close" element={<CloseDay areas={areas} tasks={tasks} userId={user.id} onClosed={handleClosed} />} />
         <Route
           path="/history"
           element={<History areas={areas} userId={user.id} onChanged={refresh} announce={announce} />}
         />
         <Route path="/week" element={<Week areas={areas} changeSignal={tasks} />} />
-        <Route path="/shift/:areaId" element={<ShiftPlan areas={areas} onChanged={refresh} announce={announce} />} />
+        <Route path="/shift/:areaId" element={<ShiftPlan areas={areas} userId={user.id} onChanged={refresh} announce={announce} />} />
         <Route
           path="/day/:date"
           element={<Day areas={areas} userId={user.id} changeSignal={tasks} onChanged={refresh} announce={announce} />}
         />
-        <Route path="/settings/areas" element={<Areas areas={areas} onChanged={refresh} announce={announce} />} />
+        <Route path="/settings/areas" element={<Areas areas={areas} userId={user.id} people={people} onChanged={refresh} announce={announce} />} />
         <Route
           path="/settings"
           element={
@@ -134,6 +135,6 @@ function Docket({ user }) {
           )}
         </div>
       )}
-    </>
+    </PeopleContext.Provider>
   )
 }

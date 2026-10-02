@@ -1,6 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { createArea, deleteArea, fetchAreaCounts, reorderAreas, updateArea } from '../lib/api.js'
+import {
+  createArea,
+  deleteArea,
+  fetchAreaCounts,
+  fetchMembers,
+  inviteToArea,
+  leaveArea,
+  removeMember,
+  reorderAreas,
+  updateArea,
+} from '../lib/api.js'
+import { shortName } from '../lib/people.js'
 
 // Eight colours that read well as small dots on white and stay distinct
 export const AREA_COLORS = [
@@ -18,8 +29,9 @@ export const AREA_COLORS = [
  * Manage areas. One row opens at a time for editing (editingId), or the
  * "new area" form at the bottom (editingId === 'new').
  */
-export default function Areas({ areas, onChanged, announce }) {
+export default function Areas({ areas, userId, people, onChanged, announce }) {
   const [counts, setCounts] = useState({})
+  const [members, setMembers] = useState([]) // invites and members of areas I can see
   const [editingId, setEditingId] = useState(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -28,7 +40,15 @@ export default function Areas({ areas, onChanged, announce }) {
     fetchAreaCounts()
       .then(setCounts)
       .catch(() => {}) // counts are a nicety; the screen works without them
+    fetchMembers()
+      .then(setMembers)
+      .catch(() => {})
   }, [])
+
+  // Mine can be edited and shared; shared-with-me can only be left
+  const mine = areas.filter((a) => a.ownerId === userId)
+  const sharedWithMe = areas.filter((a) => a.ownerId !== userId)
+  const membersOf = (areaId) => members.filter((m) => m.areaId === areaId)
 
   useEffect(() => {
     loadCounts()
@@ -51,13 +71,13 @@ export default function Areas({ areas, onChanged, announce }) {
   }
 
   function move(index, by) {
-    const ids = areas.map((a) => a.id)
+    const ids = mine.map((a) => a.id)
     const [moved] = ids.splice(index, 1)
     ids.splice(index + by, 0, moved)
     run(() => reorderAreas(ids))
   }
 
-  const nextSortOrder = Math.max(0, ...areas.map((a) => a.sortOrder ?? 0)) + 1
+  const nextSortOrder = Math.max(0, ...mine.map((a) => a.sortOrder ?? 0)) + 1
 
   return (
     <div className="screen areas-screen">
@@ -76,7 +96,7 @@ export default function Areas({ areas, onChanged, announce }) {
         )}
 
         <ul className="area-list">
-          {areas.map((area, i) => {
+          {mine.map((area, i) => {
             const c = counts[area.id] ?? { open: 0, total: 0 }
             if (editingId === area.id) {
               return (
@@ -84,7 +104,10 @@ export default function Areas({ areas, onChanged, announce }) {
                   <AreaEditor
                     area={area}
                     total={c.total}
-                    otherAreas={areas.filter((a) => a.id !== area.id)}
+                    otherAreas={mine.filter((a) => a.id !== area.id)}
+                    areaMembers={membersOf(area.id)}
+                    onInvite={(email) => run(() => inviteToArea(area.id, email), `Invited ${email.trim().toLowerCase()}`)}
+                    onRemoveMember={(m) => run(() => removeMember(m.id), `${m.email} removed`)}
                     busy={busy}
                     onCancel={() => setEditingId(null)}
                     onSave={(fields) => run(() => updateArea(area.id, fields), 'Area saved')}
@@ -108,7 +131,10 @@ export default function Areas({ areas, onChanged, announce }) {
                 <span className="area-swatch" style={{ background: area.color }} aria-hidden="true" />
                 <span className="area-text">
                   <span className="settings-name">{area.name}</span>
-                  <span className="settings-sub">{c.open} open</span>
+                  <span className="settings-sub">
+                    {c.open} open
+                    {membersOf(area.id).length > 0 && ` · Shared with ${membersOf(area.id).length}`}
+                  </span>
                 </span>
                 <span className="area-actions">
                   <button
@@ -124,7 +150,7 @@ export default function Areas({ areas, onChanged, announce }) {
                     type="button"
                     className="icon-btn small"
                     aria-label={`Move ${area.name} down`}
-                    disabled={busy || i === areas.length - 1}
+                    disabled={busy || i === mine.length - 1}
                     onClick={() => move(i, 1)}
                   >
                     <Arrow dir="down" />
@@ -145,6 +171,36 @@ export default function Areas({ areas, onChanged, announce }) {
             )
           })}
         </ul>
+
+        {sharedWithMe.length > 0 && (
+          <section className="shared-section">
+            <h2 className="section-title">Shared with you</h2>
+            <ul className="area-list">
+              {sharedWithMe.map((area) => (
+                <li key={area.id} className="area-row">
+                  <span className="area-swatch" style={{ background: area.color }} aria-hidden="true" />
+                  <span className="area-text">
+                    <span className="settings-name">{area.name}</span>
+                    <span className="settings-sub">
+                      From {shortName(people[area.ownerId])} · {(counts[area.id] ?? { open: 0 }).open} open
+                    </span>
+                  </span>
+                  <button
+                    type="button"
+                    className="restore-btn danger-text"
+                    disabled={busy}
+                    onClick={() => {
+                      if (!window.confirm(`Leave ${area.name}? Its tasks will disappear from your docket, except ones you added.`)) return
+                      run(() => leaveArea(area.id, userId), `You left ${area.name}`)
+                    }}
+                  >
+                    Leave
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </section>
+        )}
 
         {editingId === 'new' ? (
           <AreaEditor
@@ -173,12 +229,25 @@ export default function Areas({ areas, onChanged, announce }) {
 }
 
 /** Name, colour, and (for existing areas) delete with "move tasks to". */
-function AreaEditor({ area, isNew = false, total = 0, otherAreas = [], busy, onCancel, onSave, onDelete }) {
+function AreaEditor({
+  area,
+  isNew = false,
+  total = 0,
+  otherAreas = [],
+  areaMembers = [],
+  busy,
+  onCancel,
+  onSave,
+  onDelete,
+  onInvite,
+  onRemoveMember,
+}) {
   const [name, setName] = useState(area.name)
   const [color, setColor] = useState(area.color)
   const [deleting, setDeleting] = useState(false)
   const [moveTo, setMoveTo] = useState(otherAreas[0]?.id ?? '')
   const [problem, setProblem] = useState(null)
+  const [inviteEmail, setInviteEmail] = useState('')
 
   // Keep a custom colour (set before this screen existed) as an option
   const colors = AREA_COLORS.some((c) => c.hex.toLowerCase() === area.color?.toLowerCase())
@@ -234,6 +303,63 @@ function AreaEditor({ area, isNew = false, total = 0, otherAreas = [], busy, onC
         </p>
       )}
 
+      {!isNew && !deleting && (
+        <div className="share-box" role="group" aria-label={`Share ${area.name}`}>
+          <span className="field-caps">SHARE</span>
+          {areaMembers.length === 0 ? (
+            <span className="settings-sub">Only you can see this area.</span>
+          ) : (
+            <ul className="member-list">
+              {areaMembers.map((m) => (
+                <li key={m.id} className="member-row">
+                  <span className="member-email">{m.email}</span>
+                  <span className={`member-status${m.joined ? ' is-joined' : ''}`}>{m.joined ? 'Joined' : 'Invited'}</span>
+                  <button
+                    type="button"
+                    className="text-btn danger-text"
+                    disabled={busy}
+                    onClick={() => {
+                      if (window.confirm(`Remove ${m.email} from ${area.name}?`)) onRemoveMember(m)
+                    }}
+                  >
+                    Remove
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          <div className="invite-row">
+            <label className="visually-hidden" htmlFor={`invite-${area.id}`}>
+              Email address to share with
+            </label>
+            <input
+              id={`invite-${area.id}`}
+              type="email"
+              className="box-input"
+              placeholder="name@example.com"
+              autoComplete="email"
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+            />
+            <button
+              type="button"
+              className="restore-btn"
+              disabled={busy || !inviteEmail.includes('@')}
+              onClick={() => {
+                onInvite(inviteEmail)
+                setInviteEmail('')
+              }}
+            >
+              Invite
+            </button>
+          </div>
+          <span className="settings-sub">
+            They join next time they open Daily Docket signed in with this email (same login as Pantry). Members can see, add
+            and tick this area's tasks.
+          </span>
+        </div>
+      )}
+
       {!deleting && (
         <div className="editor-actions">
           <button type="submit" className="btn-dark" disabled={busy}>
@@ -267,6 +393,9 @@ function AreaEditor({ area, isNew = false, total = 0, otherAreas = [], busy, onC
                 </select>
               </label>
               <span className="settings-sub">Includes done and dropped tasks, so History stays complete.</span>
+              {areaMembers.length > 0 && (
+                <span className="settings-sub">The people it's shared with lose access, and their tasks move to your area.</span>
+              )}
             </>
           ) : (
             <span className="settings-sub">This area has no tasks.</span>

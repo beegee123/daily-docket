@@ -2,12 +2,13 @@ import { supabase } from './supabase.js'
 
 // Every call to the database lives here, so screens never talk to
 // Supabase directly. Row-level security quietly limits every query to
-// the signed-in person's rows; nothing here filters by user.
+// what the signed-in person may see (their own rows, plus areas shared
+// with them); nothing here filters by user.
 
 // The database says scheduled_date; JavaScript code says scheduledDate.
 // These two translators are the only place that difference exists.
 function areaFromDb(row) {
-  return { id: row.id, name: row.name, color: row.color, sortOrder: row.sort_order }
+  return { id: row.id, name: row.name, color: row.color, sortOrder: row.sort_order, ownerId: row.owner_id }
 }
 
 function taskFromDb(row) {
@@ -21,6 +22,7 @@ function taskFromDb(row) {
     dueDate: row.due_date,
     completedAt: row.completed_at,
     droppedAt: row.dropped_at,
+    createdBy: row.created_by,
     areaIds: (row.task_areas ?? []).map((link) => link.area_id),
   }
 }
@@ -34,7 +36,7 @@ export async function seedStarterAreas() {
 export async function fetchAreas() {
   const { data, error } = await supabase
     .from('areas')
-    .select('id, name, color, sort_order')
+    .select('id, name, color, sort_order, owner_id')
     .order('sort_order')
   if (error) throw error
   return data.map(areaFromDb)
@@ -48,7 +50,7 @@ export async function fetchAreas() {
  * so "today" means today where you are, not today in UTC.
  */
 const TASK_COLUMNS =
-  'id, title, notes, status, scheduled_date, original_date, due_date, completed_at, dropped_at, task_areas(area_id)'
+  'id, title, notes, status, scheduled_date, original_date, due_date, completed_at, dropped_at, created_by, task_areas(area_id)'
 
 export async function fetchTodayTasks(todayISO, startOfTodayISO) {
   const { data, error } = await supabase
@@ -341,4 +343,59 @@ export async function deleteArea(id, moveToId) {
 export async function reorderAreas(ids) {
   const { error } = await supabase.rpc('reorder_areas', { p_ids: ids })
   if (error) throw error
+}
+
+// ---------- Sharing areas (supabase/012_share_areas.sql) ----------
+
+/** Join any areas waiting for my email. Returns how many I joined. */
+export async function acceptMyInvites() {
+  const { data, error } = await supabase.rpc('accept_my_invites')
+  if (error) throw error
+  return data ?? 0
+}
+
+/** { [userId]: email } for everyone I share an area with. */
+export async function fetchPeople() {
+  const { data, error } = await supabase.rpc('my_people')
+  if (error) throw error
+  return Object.fromEntries((data ?? []).map((p) => [p.user_id, p.email]))
+}
+
+/** Invites and members of every area I can see. */
+export async function fetchMembers() {
+  const { data, error } = await supabase
+    .from('area_members')
+    .select('id, area_id, invited_email, user_id, accepted_at')
+    .order('created_at')
+  if (error) throw error
+  return data.map((m) => ({
+    id: m.id,
+    areaId: m.area_id,
+    email: m.invited_email,
+    userId: m.user_id,
+    joined: Boolean(m.user_id),
+  }))
+}
+
+export async function inviteToArea(areaId, email) {
+  const { error } = await supabase.rpc('invite_to_area', { p_area: areaId, p_email: email })
+  if (error) throw error
+}
+
+/** Owner removes an invite or member. */
+export async function removeMember(memberId) {
+  const { error } = await supabase.from('area_members').delete().eq('id', memberId)
+  if (error) throw error
+}
+
+/** Member leaves an area someone shared with them. */
+export async function leaveArea(areaId, userId) {
+  const { data, error } = await supabase
+    .from('area_members')
+    .delete()
+    .eq('area_id', areaId)
+    .eq('user_id', userId)
+    .select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error("Couldn't leave that area.")
 }

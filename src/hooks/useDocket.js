@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { supabase } from '../lib/supabase.js'
 import {
+  acceptMyInvites,
   fetchAreas,
+  fetchPeople,
   fetchOpenClosure,
   fetchTodayTasks,
   saveDoneState,
@@ -18,6 +20,7 @@ import { toggleDone } from '../lib/tasks.js'
 export function useDocket(userId) {
   const [areas, setAreas] = useState([])
   const [tasks, setTasks] = useState([])
+  const [people, setPeople] = useState({}) // { userId: email } of people I share with
   const [closure, setClosure] = useState(null) // today's close, if not reopened
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [error, setError] = useState(null)
@@ -31,12 +34,16 @@ export function useDocket(userId) {
     if (!quiet) setStatus('loading')
     try {
       const now = new Date()
-      const [nextAreas, nextTasks, nextClosure] = await Promise.all([
+      const [nextAreas, nextTasks, nextClosure, nextPeople] = await Promise.all([
         fetchAreas(),
         fetchTodayTasks(toLocalISODate(now), startOfLocalDayISO(now)),
         fetchOpenClosure(toLocalISODate(now)),
+        fetchPeople().catch(() => ({})), // tags are a nicety
       ])
+      // Your own areas first (in your order), then areas shared with you
+      nextAreas.sort((a, b) => (a.ownerId === userId) === (b.ownerId === userId) ? 0 : a.ownerId === userId ? -1 : 1)
       setAreas(nextAreas)
+      setPeople(nextPeople)
       setTasks(nextTasks)
       setClosure(nextClosure)
       setStatus('ready')
@@ -47,7 +54,7 @@ export function useDocket(userId) {
         setStatus('error')
       }
     }
-  }, [])
+  }, [userId])
 
   // First load: make sure starter areas exist, then fetch
   useEffect(() => {
@@ -55,6 +62,8 @@ export function useDocket(userId) {
     ;(async () => {
       try {
         await seedStarterAreas()
+        // Someone may have shared an area with my email since last time
+        await acceptMyInvites().catch((e) => console.warn('Invites not checked', e.message))
         // Digest times are in your own timezone; keep it current (travel!).
         // Not worth stopping the app over if it fails.
         syncTimezone(userId).catch((e) => console.warn('Timezone not saved', e.message))
@@ -88,6 +97,7 @@ export function useDocket(userId) {
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'task_areas' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'day_closures' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'areas' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'docket', table: 'area_members' }, scheduleReload)
       .subscribe()
 
     // Coming back to the app (or past midnight) also refreshes
@@ -129,6 +139,7 @@ export function useDocket(userId) {
   return {
     areas,
     tasks,
+    people,
     closure,
     status,
     error,
