@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
+import NotesEditor from '../components/NotesEditor.jsx'
 import { deleteEvent, fetchEvent, saveEvent } from '../lib/api.js'
 import { toLocalISODate } from '../lib/dates.js'
 import { isShared, nameFor, usePeople } from '../lib/people.js'
@@ -212,16 +213,12 @@ export default function EventForm({ areas, onSaved, announce }) {
           </span>
         </fieldset>
 
-        <label className="field">
-          <span className="field-caps">NOTES</span>
-          <textarea
-            className="notes-input"
-            value={form.notes}
-            onChange={(e) => update('notes', e.target.value)}
-            rows={3}
-            placeholder="Hotel, flight times…"
-          />
-        </label>
+        <NotesEditor
+          id="event-notes"
+          value={form.notes}
+          onChange={(v) => update('notes', v)}
+          placeholder="Hotel, flight times…"
+        />
 
         {saveError && (
           <p className="form-error" role="alert">

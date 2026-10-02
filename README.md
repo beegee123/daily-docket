@@ -45,6 +45,7 @@ After running `001`, add `docket` to **Exposed schemas** in the project's Data A
 1. Copy `.env.example` to `.env.local` and fill in the Supabase URL and key (the same values Pantry uses).
 2. `npm install`
 3. `npm run dev`
+4. `npm test` runs the unit tests (Vitest), e.g. the notes list logic in `src/lib/notes.test.js`.
 
 ## Push notifications
 

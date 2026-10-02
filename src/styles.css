@@ -838,3 +838,40 @@ a.event-row:hover { color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 
 .date-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .date-pair .box-input { width: 100%; }
+
+/* ---------- Notes with lists ---------- */
+
+.notes-head { display: flex; align-items: center; justify-content: space-between; min-height: 32px; }
+.notes-head .text-btn { min-height: 36px; font-size: 14px; }
+.notes-toolbar { display: flex; gap: 6px; flex-wrap: wrap; }
+.tool-btn {
+  min-height: 36px;
+  padding: 0 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--card);
+  font-size: 13px;
+  font-weight: 600;
+}
+.tool-icon { font-weight: 700; color: var(--cobalt); }
+
+.notes-view {
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: var(--card);
+  font-size: 15px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.notes-view p, .notes-view ul, .notes-view ol { margin: 0; }
+.notes-view ul, .notes-view ol { padding-left: 22px; }
+.notes-view .notes-gap { height: 10px; }
+.notes-view a { font-weight: 600; text-decoration: underline; text-underline-offset: 2px; }
+.notes-view .checklist { list-style: none; padding-left: 0; }
+.notes-view .checklist label { display: flex; align-items: flex-start; gap: 10px; min-height: 32px; cursor: pointer; }
+.notes-view .checklist input { width: 20px; height: 20px; margin-top: 2px; accent-color: var(--cobalt); flex-shrink: 0; }
+.notes-view .checklist .is-checked span { color: var(--muted); text-decoration: line-through; }

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
+import NotesEditor from '../components/NotesEditor.jsx'
 import { dropTask, fetchTask, saveTask } from '../lib/api.js'
 import { daysBetween, daysFromToday, formatShortDate, toLocalISODate } from '../lib/dates.js'
 import { nameFor, usePeople } from '../lib/people.js'
@@ -325,15 +326,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
           </div>
         </label>
 
-        <label className="field">
-          <span className="field-caps">NOTES</span>
-          <textarea
-            className="notes-input"
-            value={form.notes}
-            onChange={(e) => update('notes', e.target.value)}
-            rows={3}
-          />
-        </label>
+        <NotesEditor id="task-notes" value={form.notes} onChange={(v) => update('notes', v)} />
 
         {saveError && (
           <p className="form-error" role="alert">
