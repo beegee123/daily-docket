@@ -11,6 +11,9 @@
 //     sends x-cron-secret plus { assigned_task, assigned_by } and the
 //     assignee gets "Bee assigned you: Take out bins".
 //
+// If a digest reaches none of a person's devices, release_digest
+// (017_digest_retry.sql) clears "sent today" so the next run retries.
+//
 // Secrets it needs (Edge Functions -> Secrets):
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT  (already there for send-test-push)
 //   CRON_SECRET                                        (new)
@@ -171,17 +174,29 @@ Deno.serve(async (req) => {
       return json({ error: error.message }, 500)
     }
 
-    const totals = { people: due?.length ?? 0, sent: 0, removed: 0, failed: 0, skipped: 0 }
+    const totals = { people: due?.length ?? 0, sent: 0, removed: 0, failed: 0, skipped: 0, retrying: 0 }
     for (const row of due ?? []) {
+      let delivered = false
       try {
         const r = await sendDigest(admin, row.user_id, row.local_date)
         totals.sent += r.sent
         totals.removed += r.removed
         totals.failed += r.failed
         if (r.skipped) totals.skipped++
+        // Nothing to say counts as done; otherwise at least one device must have got it
+        delivered = Boolean(r.skipped) || r.sent > 0
       } catch (e) {
         console.error('Digest failed for one person', (e as Error).message)
         totals.failed++
+      }
+      if (!delivered) {
+        // Undo "sent today" so the next run (15 minutes later) tries again
+        const { error: releaseError } = await admin.rpc('release_digest', {
+          p_user: row.user_id,
+          p_date: row.local_date,
+        })
+        if (releaseError) console.error('release_digest failed', releaseError.message)
+        else totals.retrying++
       }
     }
     if (totals.people) console.info('Digest run', JSON.stringify(totals))

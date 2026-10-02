@@ -37,6 +37,7 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 14. `014_events.sql` — trips and events, visible to everyone in the area
 15. `015_calendar_feed.sql` — a private calendar link per person (deploy `calendar-feed` too)
 16. `016_event_times.sql` — one-day and timed events (redeploy `calendar-feed` too)
+17. `017_digest_retry.sql` — a digest that reaches no device is retried 15 minutes later (redeploy `send-digest` too)
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 
