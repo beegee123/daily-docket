@@ -36,6 +36,7 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 13. `013_assign.sql` — assign tasks in shared areas, and notify the assignee (redeploy `send-digest` too)
 14. `014_events.sql` — trips and events, visible to everyone in the area
 15. `015_calendar_feed.sql` — a private calendar link per person (deploy `calendar-feed` too)
+16. `016_event_times.sql` — one-day and timed events (redeploy `calendar-feed` too)
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 
@@ -46,7 +47,7 @@ After running `001`, add `docket` to **Exposed schemas** in the project's Data A
 1. Copy `.env.example` to `.env.local` and fill in the Supabase URL and key (the same values Pantry uses).
 2. `npm install`
 3. `npm run dev`
-4. `npm test` runs the unit tests (Vitest), e.g. the notes list logic in `src/lib/notes.test.js` and the calendar feed in `src/lib/ics.test.js`.
+4. `npm test` runs the unit tests (Vitest), e.g. the notes list logic in `src/lib/notes.test.js` the calendar feed in `src/lib/ics.test.js` and event labels in `src/lib/events.test.js`.
 
 ## Push notifications
 

@@ -414,11 +414,16 @@ function eventFromDb(row) {
     title: row.title,
     startDate: row.start_date,
     endDate: row.end_date,
+    // '14:00:00' -> '14:00'; null = all day
+    startTime: row.start_time?.slice(0, 5) ?? null,
+    endTime: row.end_time?.slice(0, 5) ?? null,
+    timeZone: row.time_zone,
     notes: row.notes,
   }
 }
 
-const EVENT_COLUMNS = 'id, area_id, created_by, person_id, title, start_date, end_date, notes'
+const EVENT_COLUMNS =
+  'id, area_id, created_by, person_id, title, start_date, end_date, start_time, end_time, time_zone, notes'
 
 /** Events touching any day from..to (inclusive). */
 export async function fetchEventsBetween(fromISO, toISO) {
@@ -428,6 +433,7 @@ export async function fetchEventsBetween(fromISO, toISO) {
     .lte('start_date', toISO)
     .gte('end_date', fromISO)
     .order('start_date')
+    .order('start_time', { nullsFirst: true })
   if (error) throw error
   return data.map(eventFromDb)
 }
@@ -439,6 +445,7 @@ export async function fetchUpcomingEvents(todayISO) {
     .select(EVENT_COLUMNS)
     .gte('end_date', todayISO)
     .order('start_date')
+    .order('start_time', { nullsFirst: true })
     .limit(100)
   if (error) throw error
   return data.map(eventFromDb)
@@ -450,19 +457,35 @@ export async function fetchEvent(id) {
   return data ? eventFromDb(data) : null
 }
 
-export async function saveEvent({ id = null, areaId, personId, title, startDate, endDate, notes }) {
+export async function saveEvent({
+  id = null,
+  areaId,
+  personId,
+  title,
+  startDate,
+  endDate,
+  startTime = null,
+  endTime = null,
+  timeZone = null,
+  notes,
+}) {
   const row = {
     area_id: areaId,
     person_id: personId || null,
     title: title.trim(),
     start_date: startDate,
     end_date: endDate,
+    start_time: startTime || null,
+    end_time: (startTime && endTime) || null,
+    // Where the time was entered; kept when someone elsewhere edits it
+    time_zone: timeZone || deviceTimezone(),
     notes: notes?.trim() || null,
   }
   const { data, error } = id
     ? await supabase.from('events').update(row).eq('id', id).select('id')
     : await supabase.from('events').insert(row).select('id')
   if (error) {
+    if (error.message?.includes('events_times_in_order')) throw new Error('The end time has to be after the start time.')
     if (error.code === '23514') throw new Error('The end date can\'t be before the start date.')
     throw error
   }

@@ -22,6 +22,9 @@ export type FeedEvent = {
   title: string
   start_date: string // 'YYYY-MM-DD'
   end_date: string // 'YYYY-MM-DD', the last day (inclusive)
+  start_time: string | null // '14:00:00'; null = all day
+  end_time: string | null // optional
+  time_zone: string // where the time was entered, e.g. 'America/New_York'
   notes: string | null
   updated_at: string // ISO timestamp
   area_name: string
@@ -65,6 +68,54 @@ export function icsStamp(isoTimestamp: string): string {
   return new Date(isoTimestamp).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
 }
 
+/**
+ * A wall-clock time in a time zone -> the same moment in UTC, as .ics text.
+ * '2026-11-05', '14:00:00', 'America/New_York' -> '20261105T190000Z'.
+ * Works it out by asking what the clock in that zone reads at a guess,
+ * then correcting by the difference (twice, so daylight-saving changes
+ * that day come out right).
+ */
+export function zonedToUtc(dateISO: string, time: string, timeZone: string): string {
+  return icsStamp(new Date(zonedToMs(dateISO, time, timeZone)).toISOString())
+}
+
+function zonedToMs(dateISO: string, time: string, timeZone: string): number {
+  const [y, mo, d] = dateISO.split('-').map(Number)
+  const [h, mi] = time.split(':').map(Number)
+  const wanted = Date.UTC(y, mo - 1, d, h, mi)
+  const offsetAt = (ms: number) => {
+    const parts = Object.fromEntries(
+      new Intl.DateTimeFormat('en-US', {
+        timeZone,
+        hourCycle: 'h23',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric',
+        hour: 'numeric',
+        minute: 'numeric',
+      })
+        .formatToParts(new Date(ms))
+        .map((p) => [p.type, Number(p.value)]),
+    )
+    return Date.UTC(parts.year, parts.month - 1, parts.day, parts.hour, parts.minute) - ms
+  }
+  let ms = wanted - offsetAt(wanted)
+  ms = wanted - offsetAt(ms)
+  return ms
+}
+
+/** When a timed event starts and ends, in UTC. No end time = one hour. */
+export function timedRange(event: FeedEvent): { start: string; end: string } {
+  const start = zonedToUtc(event.start_date, event.start_time!, event.time_zone)
+  if (event.end_time) return { start, end: zonedToUtc(event.end_date, event.end_time, event.time_zone) }
+  if (event.end_date !== event.start_date) {
+    // Runs over several days with no end time: until the end of the last day
+    return { start, end: zonedToUtc(nextDay(event.end_date), '00:00', event.time_zone) }
+  }
+  const oneHourLater = zonedToMs(event.start_date, event.start_time!, event.time_zone) + 3_600_000
+  return { start, end: icsStamp(new Date(oneHourLater).toISOString()) }
+}
+
 /** Text values must escape backslashes, semicolons, commas and line breaks. */
 export function escapeText(text: string): string {
   return text
@@ -102,17 +153,22 @@ export function foldLine(line: string): string {
 export function eventLines(event: FeedEvent, viewerId: string): string[] {
   const description = [event.notes?.trim(), `Area: ${event.area_name}`].filter(Boolean).join('\n\n')
   const stamp = icsStamp(event.updated_at)
+  // Trips are always whole days, even if a time slipped in
+  const timed = Boolean(event.start_time) && !event.person_id
+  const when = timed
+    ? (({ start, end }) => [`DTSTART:${start}`, `DTEND:${end}`])(timedRange(event))
+    : [`DTSTART;VALUE=DATE:${icsDate(event.start_date)}`, `DTEND;VALUE=DATE:${icsDate(nextDay(event.end_date))}`]
   return [
     'BEGIN:VEVENT',
     `UID:${event.id}@${UID_DOMAIN}`,
     `DTSTAMP:${stamp}`,
     `LAST-MODIFIED:${stamp}`,
-    `DTSTART;VALUE=DATE:${icsDate(event.start_date)}`,
-    `DTEND;VALUE=DATE:${icsDate(nextDay(event.end_date))}`,
+    ...when,
     `SUMMARY:${escapeText(summaryFor(event, viewerId))}`,
     `DESCRIPTION:${escapeText(description)}`,
-    // Shows as free, so a trip doesn't block the whole day as busy
-    'TRANSP:TRANSPARENT',
+    // A timed event shows as busy; trips and all-day events show as free,
+    // so they don't block the whole day
+    timed ? 'TRANSP:OPAQUE' : 'TRANSP:TRANSPARENT',
     'END:VEVENT',
   ]
 }

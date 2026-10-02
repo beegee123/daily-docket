@@ -153,7 +153,7 @@ export default function Week({ areas, changeSignal }) {
                 <span className="week-tasks">
                   {dayEvents.map((ev) => (
                     <span key={ev.id} className="week-event">
-                      {eventTag(ev, meId, people)}
+                      {eventTag(ev, meId, people, iso)}
                     </span>
                   ))}
                   {past ? (

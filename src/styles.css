@@ -880,3 +880,8 @@ a.event-row:hover { color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 
 .link-btn { display: inline-flex; align-items: center; text-decoration: none; }
 .cal-link { width: 100%; height: 44px; font-size: 12px; color: var(--muted); }
+
+/* ---------- One-day and timed events (step 16c) ---------- */
+
+.small-link { align-self: flex-start; min-height: 36px; padding: 0 2px; font-size: 13px; margin-top: -8px; }
+.kind-row { flex-wrap: wrap; }

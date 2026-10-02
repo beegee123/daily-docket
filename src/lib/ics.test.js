@@ -6,6 +6,7 @@ import {
   icsStamp,
   nextDay,
   summaryFor,
+  zonedToUtc,
 } from '../../supabase/functions/calendar-feed/index.ts'
 
 // The calendar feed's text builder lives with the Edge Function, so the
@@ -19,6 +20,9 @@ const trip = {
   title: 'Chicago',
   start_date: '2026-10-05',
   end_date: '2026-10-08',
+  start_time: null,
+  end_time: null,
+  time_zone: 'America/New_York',
   notes: null,
   updated_at: '2026-10-02T18:15:00.123Z',
   area_name: 'Home',
@@ -97,5 +101,32 @@ describe('whole calendar', () => {
   })
   it('has two events', () => {
     expect(ics.match(/BEGIN:VEVENT/g)).toHaveLength(2)
+  })
+})
+
+describe('timed events', () => {
+  const exam = { ...trip, id: 'e3', person_id: null, title: 'PD1 exam', start_date: '2026-11-05', end_date: '2026-11-05', start_time: '14:00:00', end_time: '15:30:00' }
+
+  it('converts New York time to UTC, before and after the clocks change', () => {
+    expect(zonedToUtc('2026-10-05', '14:00:00', 'America/New_York')).toBe('20261005T180000Z') // EDT, UTC-4
+    expect(zonedToUtc('2026-11-05', '14:00:00', 'America/New_York')).toBe('20261105T190000Z') // EST, UTC-5
+    expect(zonedToUtc('2026-11-01', '01:30:00', 'America/Chicago')).toBe('20261101T063000Z')
+    expect(zonedToUtc('2026-10-05', '09:00:00', 'Europe/London')).toBe('20261005T080000Z')
+  })
+  it('writes a timed event with UTC start and end, shown as busy', () => {
+    const ics = buildCalendar([exam], BEE)
+    expect(ics).toContain('DTSTART:20261105T190000Z')
+    expect(ics).toContain('DTEND:20261105T203000Z')
+    expect(ics).toContain('TRANSP:OPAQUE')
+    expect(ics).not.toContain('VALUE=DATE')
+  })
+  it('lasts one hour when there is no end time', () => {
+    const ics = buildCalendar([{ ...exam, end_time: null }], BEE)
+    expect(ics).toContain('DTEND:20261105T200000Z')
+  })
+  it('keeps trips as whole days even if a time slipped in', () => {
+    const ics = buildCalendar([{ ...trip, start_time: '06:15:00' }], BEE)
+    expect(ics).toContain('DTSTART;VALUE=DATE:20261005')
+    expect(ics).toContain('TRANSP:TRANSPARENT')
   })
 })

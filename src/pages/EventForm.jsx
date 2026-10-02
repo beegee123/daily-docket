@@ -27,11 +27,17 @@ export default function EventForm({ areas, onSaved, announce }) {
       const shared = areas.find((a) => isShared(areaPeople, a.id))
       const start = searchParams.get('date') || todayISO
       setForm({
+        kind: searchParams.get('kind') === 'trip' ? 'trip' : 'event',
         title: '',
         areaId: (shared ?? areas[0])?.id ?? '',
         personId: null,
         startDate: start,
         endDate: start,
+        allDay: true,
+        startTime: '',
+        endTime: '',
+        multiDay: false,
+        timeZone: null,
         notes: '',
       })
       return
@@ -41,7 +47,15 @@ export default function EventForm({ areas, onSaved, announce }) {
       .then((ev) => {
         if (cancelled) return
         if (!ev) return setLoadError('This trip or event no longer exists.')
-        setForm({ ...ev, notes: ev.notes ?? '' })
+        setForm({
+          ...ev,
+          kind: ev.personId ? 'trip' : 'event',
+          allDay: !ev.startTime,
+          startTime: ev.startTime ?? '',
+          endTime: ev.endTime ?? '',
+          multiDay: ev.endDate !== ev.startDate,
+          notes: ev.notes ?? '',
+        })
       })
       .catch((e) => !cancelled && setLoadError(e.message))
     return () => {
@@ -75,18 +89,39 @@ export default function EventForm({ areas, onSaved, announce }) {
   // Who can be away: anyone in the chosen area (just you, if it isn't shared)
   const inArea = areaPeople[form.areaId] ?? [meId]
   const choices = [meId, ...inArea.filter((p) => p !== meId)]
-  const personId = form.personId && inArea.includes(form.personId) ? form.personId : null
+  const isTripForm = form.kind === 'trip'
+  // A trip always has someone away: whoever was picked, else the other
+  // person in a shared area, else you
+  const picked = form.personId && inArea.includes(form.personId) ? form.personId : null
+  const personId = isTripForm ? (picked ?? inArea.find((p) => p !== meId) ?? meId) : null
+  const showEndDate = isTripForm || form.multiDay
+  const timed = !isTripForm && !form.allDay
 
   async function handleSave(e) {
     e.preventDefault()
     if (!form.title.trim()) return setSaveError('Give it a title, like "Chicago" or "PD1 exam".')
     if (!form.areaId) return setSaveError('Pick an area.')
     if (!form.startDate || !form.endDate) return setSaveError('Pick the dates.')
-    if (form.endDate < form.startDate) return setSaveError("The end date can't be before the start date.")
+    const endDate = showEndDate ? form.endDate : form.startDate
+    if (endDate < form.startDate) return setSaveError("The end date can't be before the start date.")
+    if (timed && !form.startTime) return setSaveError('Pick a start time, or switch on All day.')
+    if (timed && form.endTime && endDate === form.startDate && form.endTime <= form.startTime)
+      return setSaveError('The end time has to be after the start time.')
     setBusy(true)
     setSaveError(null)
     try {
-      await saveEvent({ ...form, id: id ?? null, personId })
+      await saveEvent({
+        id: id ?? null,
+        areaId: form.areaId,
+        personId,
+        title: form.title,
+        startDate: form.startDate,
+        endDate,
+        startTime: timed ? form.startTime : null,
+        endTime: timed ? form.endTime : null,
+        timeZone: form.timeZone,
+        notes: form.notes,
+      })
       onSaved()
       announce(isNew ? `Added: ${form.title.trim()}` : 'Saved')
       goBack()
@@ -116,7 +151,9 @@ export default function EventForm({ areas, onSaved, announce }) {
         <button type="button" className="text-btn" onClick={goBack}>
           Cancel
         </button>
-        <h1 className="form-heading">{isNew ? 'New trip or event' : 'Edit trip or event'}</h1>
+        <h1 className="form-heading">
+          {isNew ? (isTripForm ? 'New trip' : 'New event') : isTripForm ? 'Edit trip' : 'Edit event'}
+        </h1>
         <button type="submit" className="btn-dark" disabled={busy}>
           {busy ? 'Saving…' : 'Save'}
         </button>
@@ -129,40 +166,51 @@ export default function EventForm({ areas, onSaved, announce }) {
             className="title-input"
             value={form.title}
             onChange={(e) => update('title', e.target.value)}
-            placeholder="Chicago · client site"
+            placeholder={isTripForm ? 'Chicago · client site' : 'PD1 exam'}
             maxLength={120}
             autoFocus={isNew}
           />
         </label>
 
-        <fieldset className="field">
-          <legend className="field-caps">WHO'S AWAY</legend>
-          <div className="chip-row">
+        <div className="chip-row kind-row" role="group" aria-label="Trip or event">
+          {[
+            ['event', 'Event'],
+            ['trip', 'Trip · someone away'],
+          ].map(([value, label]) => (
             <button
+              key={value}
               type="button"
-              className={`chip chip-lg${personId === null ? ' is-on' : ''}`}
-              aria-pressed={personId === null}
-              onClick={() => update('personId', null)}
+              className={`chip chip-lg${form.kind === value ? ' is-on' : ''}`}
+              aria-pressed={form.kind === value}
+              onClick={() => update('kind', value)}
             >
-              No one · it's an event
+              {label}
             </button>
-            {choices.map((p) => (
-              <button
-                key={p}
-                type="button"
-                className={`chip chip-lg${personId === p ? ' is-on' : ''}`}
-                aria-pressed={personId === p}
-                onClick={() => update('personId', p)}
-              >
-                {nameFor(p, meId, people)}
-              </button>
-            ))}
-          </div>
-        </fieldset>
+          ))}
+        </div>
+
+        {isTripForm && (
+          <fieldset className="field">
+            <legend className="field-caps">WHO'S AWAY</legend>
+            <div className="chip-row">
+              {choices.map((p) => (
+                <button
+                  key={p}
+                  type="button"
+                  className={`chip chip-lg${personId === p ? ' is-on' : ''}`}
+                  aria-pressed={personId === p}
+                  onClick={() => update('personId', p)}
+                >
+                  {nameFor(p, meId, people)}
+                </button>
+              ))}
+            </div>
+          </fieldset>
+        )}
 
         <div className="date-pair">
           <label className="field">
-            <span className="field-caps">{personId ? 'LEAVES' : 'FROM'}</span>
+            <span className="field-caps">{isTripForm ? 'LEAVES' : showEndDate ? 'FROM' : 'DATE'}</span>
             <input
               type="date"
               className="box-input"
@@ -173,17 +221,81 @@ export default function EventForm({ areas, onSaved, announce }) {
               }}
             />
           </label>
-          <label className="field">
-            <span className="field-caps">{personId ? 'BACK' : 'TO'}</span>
-            <input
-              type="date"
-              className="box-input"
-              min={form.startDate}
-              value={form.endDate}
-              onChange={(e) => update('endDate', e.target.value)}
-            />
-          </label>
+          {showEndDate && (
+            <label className="field">
+              <span className="field-caps">{isTripForm ? 'BACK' : 'TO'}</span>
+              <input
+                type="date"
+                className="box-input"
+                min={form.startDate}
+                value={form.endDate}
+                onChange={(e) => update('endDate', e.target.value)}
+              />
+            </label>
+          )}
         </div>
+
+        {!isTripForm && (
+          <>
+            <button
+              type="button"
+              className="text-btn small-link"
+              onClick={() =>
+                setForm((prev) => ({
+                  ...prev,
+                  multiDay: !prev.multiDay,
+                  endDate: prev.multiDay ? prev.startDate : prev.endDate,
+                }))
+              }
+            >
+              {form.multiDay ? 'Just one day' : 'Ends another day'}
+            </button>
+
+            <div className="settings-card">
+              <div className="settings-row">
+                <div className="settings-text">
+                  <span className="settings-name" id="all-day-label">All day</span>
+                  <span className="settings-sub">Switch off to set a time.</span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={form.allDay}
+                  aria-labelledby="all-day-label"
+                  className={`switch${form.allDay ? ' is-on' : ''}`}
+                  onClick={() => update('allDay', !form.allDay)}
+                >
+                  <span />
+                </button>
+              </div>
+            </div>
+
+            {timed && (
+              <div className="date-pair">
+                <label className="field">
+                  <span className="field-caps">STARTS</span>
+                  <input
+                    type="time"
+                    className="box-input"
+                    step="300"
+                    value={form.startTime}
+                    onChange={(e) => update('startTime', e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span className="field-caps">ENDS · OPTIONAL</span>
+                  <input
+                    type="time"
+                    className="box-input"
+                    step="300"
+                    value={form.endTime}
+                    onChange={(e) => update('endTime', e.target.value)}
+                  />
+                </label>
+              </div>
+            )}
+          </>
+        )}
 
         <fieldset className="field">
           <legend className="field-caps">WHO CAN SEE IT</legend>
@@ -217,7 +329,7 @@ export default function EventForm({ areas, onSaved, announce }) {
           id="event-notes"
           value={form.notes}
           onChange={(v) => update('notes', v)}
-          placeholder="Hotel, flight times…"
+          placeholder={isTripForm ? 'Hotel, flight times…' : 'Room, what to bring…'}
         />
 
         {saveError && (
@@ -228,7 +340,7 @@ export default function EventForm({ areas, onSaved, announce }) {
 
         {!isNew && (
           <button type="button" className="danger-btn" onClick={handleDelete} disabled={busy}>
-            Delete this trip or event
+            {isTripForm ? 'Delete this trip' : 'Delete this event'}
           </button>
         )}
       </div>
