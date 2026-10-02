@@ -35,6 +35,7 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 12. `012_share_areas.sql` — share an area by email; new security rules for shared areas
 13. `013_assign.sql` — assign tasks in shared areas, and notify the assignee (redeploy `send-digest` too)
 14. `014_events.sql` — trips and events, visible to everyone in the area
+15. `015_calendar_feed.sql` — a private calendar link per person (deploy `calendar-feed` too)
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 
@@ -45,7 +46,7 @@ After running `001`, add `docket` to **Exposed schemas** in the project's Data A
 1. Copy `.env.example` to `.env.local` and fill in the Supabase URL and key (the same values Pantry uses).
 2. `npm install`
 3. `npm run dev`
-4. `npm test` runs the unit tests (Vitest), e.g. the notes list logic in `src/lib/notes.test.js`.
+4. `npm test` runs the unit tests (Vitest), e.g. the notes list logic in `src/lib/notes.test.js` and the calendar feed in `src/lib/ics.test.js`.
 
 ## Push notifications
 
@@ -55,6 +56,8 @@ After running `001`, add `docket` to **Exposed schemas** in the project's Data A
 4. Deploy `supabase/functions/send-test-push/index.ts` as an Edge Function named `send-test-push`. In the dashboard editor, set the name box before deploying: it sets the function's address, which can't be changed later. The URL column should end in `/send-test-push`.
 
 Morning digest: deploy `supabase/functions/send-digest/index.ts` as `send-digest` (set the name before deploying), add the secret `CRON_SECRET`, then run `010_digest_schedule.sql`.
+
+Calendar feed: deploy `supabase/functions/calendar-feed/index.ts` as `calendar-feed` (set the name before deploying). It's one file with no imports. Turn **Verify JWT** off, because calendar apps can't sign in; the token in each person's link is the lock.
 
 On iPhone, notifications only work from the home-screen app.
 

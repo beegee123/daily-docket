@@ -474,3 +474,19 @@ export async function deleteEvent(id) {
   if (error) throw error
   if (!data?.length) throw new Error('That trip or event could not be deleted.')
 }
+
+// ---------- Calendar feed (supabase/015_calendar_feed.sql) ----------
+
+/** Your private calendar token. Made the first time you ask. */
+export async function fetchCalendarToken() {
+  const { data, error } = await supabase.rpc('my_calendar_token')
+  if (error) throw error
+  return data
+}
+
+/** A new token; calendars on the old link stop updating. */
+export async function resetCalendarToken() {
+  const { data, error } = await supabase.rpc('reset_calendar_token')
+  if (error) throw error
+  return data
+}

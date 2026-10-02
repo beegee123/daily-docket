@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
-import { fetchSettings, saveSettings } from '../lib/api.js'
+import { fetchCalendarToken, fetchSettings, resetCalendarToken, saveSettings } from '../lib/api.js'
+import { feedUrl, googleAddUrl } from '../lib/calendar.js'
 import {
   currentSubscription,
   isInstalled,
@@ -22,6 +23,10 @@ export default function Settings({ areaCount, userId, userEmail, onSignOut, anno
   const [digest, setDigest] = useState(null) // null = loading
   const [digestError, setDigestError] = useState(null)
 
+  const [calToken, setCalToken] = useState(null) // null = loading
+  const [calError, setCalError] = useState(null)
+  const [showLink, setShowLink] = useState(false) // shown when copying isn't allowed
+
   const supported = pushSupported()
   const needsInstall = isIOS() && !isInstalled()
   const blocked = supported && permissionState() === 'denied'
@@ -39,6 +44,38 @@ export default function Settings({ areaCount, userId, userEmail, onSignOut, anno
       .then((s) => setDigest(s ?? { timezone: null, digestOn: true, digestTime: '07:30', digestDays: 'weekdays' }))
       .catch((e) => setDigestError(e.message))
   }, [])
+
+  useEffect(() => {
+    fetchCalendarToken()
+      .then(setCalToken)
+      .catch((e) => setCalError(e.message))
+  }, [])
+
+  const calLink = calToken ? feedUrl(import.meta.env.VITE_SUPABASE_URL, calToken) : null
+
+  async function handleCopyLink() {
+    setCalError(null)
+    try {
+      await navigator.clipboard.writeText(calLink)
+      announce('Calendar link copied')
+    } catch {
+      // Some browsers block copying; show the link so it can be copied by hand
+      setShowLink(true)
+    }
+  }
+
+  async function handleResetLink() {
+    if (!window.confirm('Reset your calendar link? Calendars using the old link stop updating, so you will need to add the new one again.')) return
+    setBusy(true)
+    setCalError(null)
+    try {
+      setCalToken(await resetCalendarToken())
+      announce('New calendar link ready. Add it to your calendar again.')
+    } catch (e) {
+      setCalError(e.message)
+    }
+    setBusy(false)
+  }
 
   // Save one change; put it back if the save fails
   async function updateDigest(change) {
@@ -253,6 +290,69 @@ export default function Settings({ areaCount, userId, userEmail, onSignOut, anno
           {digestError && (
             <p className="form-error" role="alert">
               {digestError}
+            </p>
+          )}
+        </section>
+
+        <section>
+          <h2 className="section-title">Calendar</h2>
+          <div className="settings-card">
+            <div className="settings-row">
+              <div className="settings-text">
+                <span className="settings-name">Add to Google Calendar</span>
+                <span className="settings-sub">Trips and events from all your areas, next to your other calendars.</span>
+              </div>
+              {calLink ? (
+                <a className="restore-btn link-btn" href={googleAddUrl(calLink)} target="_blank" rel="noopener noreferrer">
+                  Add
+                </a>
+              ) : (
+                <button type="button" className="restore-btn" disabled>
+                  Add
+                </button>
+              )}
+            </div>
+
+            <div className="settings-row">
+              <div className="settings-text">
+                <span className="settings-name">Copy link</span>
+                <span className="settings-sub">For Apple Calendar, Outlook or any app that subscribes by URL.</span>
+              </div>
+              <button type="button" className="restore-btn" disabled={!calLink} onClick={handleCopyLink}>
+                Copy
+              </button>
+            </div>
+
+            {showLink && calLink && (
+              <div className="settings-row">
+                <label className="visually-hidden" htmlFor="cal-link">Your calendar link</label>
+                <input
+                  id="cal-link"
+                  className="box-input cal-link"
+                  readOnly
+                  value={calLink}
+                  onFocus={(e) => e.target.select()}
+                />
+              </div>
+            )}
+
+            <div className="settings-row">
+              <div className="settings-text">
+                <span className="settings-name">Reset link</span>
+                <span className="settings-sub">If the link gets shared by mistake. The old one stops working.</span>
+              </div>
+              <button type="button" className="restore-btn danger-text" disabled={!calLink || busy} onClick={handleResetLink}>
+                Reset
+              </button>
+            </div>
+          </div>
+          <p className="hint">
+            One-way: add and edit trips here and your calendar follows. Google checks for changes every few hours. Adding
+            it is easiest from a computer, since the Google Calendar phone app can't subscribe to links.
+          </p>
+          {calError && (
+            <p className="form-error" role="alert">
+              {calError}
             </p>
           )}
         </section>
