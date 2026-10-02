@@ -6,6 +6,8 @@ import CloseDay from './pages/CloseDay.jsx'
 import History from './pages/History.jsx'
 import Settings from './pages/Settings.jsx'
 import Areas from './pages/Areas.jsx'
+import Events from './pages/Events.jsx'
+import EventForm from './pages/EventForm.jsx'
 import Week from './pages/Week.jsx'
 import Day from './pages/Day.jsx'
 import ShiftPlan from './pages/ShiftPlan.jsx'
@@ -33,7 +35,7 @@ export default function App() {
 }
 
 function Docket({ user }) {
-  const { areas, tasks, people, areaPeople, closure, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
+  const { areas, tasks, people, areaPeople, todayEvents, closure, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
     useDocket(user.id)
 
   if (status === 'loading') return <StatusScreen title="Loading your docket…" />
@@ -81,6 +83,7 @@ function Docket({ user }) {
               areas={areas}
               tasks={tasks}
               onToggle={toggle}
+              todayEvents={todayEvents}
               closure={closure}
               onReopen={handleReopen}
               userEmail={user.email}
@@ -96,6 +99,9 @@ function Docket({ user }) {
           element={<History areas={areas} userId={user.id} onChanged={refresh} announce={announce} />}
         />
         <Route path="/week" element={<Week areas={areas} changeSignal={tasks} />} />
+        <Route path="/events" element={<Events areas={areas} changeSignal={tasks} />} />
+        <Route path="/events/new" element={<EventForm areas={areas} onSaved={refresh} announce={announce} />} />
+        <Route path="/events/:id" element={<EventForm areas={areas} onSaved={refresh} announce={announce} />} />
         <Route path="/shift/:areaId" element={<ShiftPlan areas={areas} userId={user.id} onChanged={refresh} announce={announce} />} />
         <Route
           path="/day/:date"

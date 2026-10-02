@@ -778,3 +778,63 @@ a.btn-secondary:hover { color: var(--cobalt); }
 
 .who-tag.is-me { background: var(--ink); border-color: var(--ink); color: #FFFFFF; }
 .chip-mine { font-weight: 700; }
+
+/* ---------- Trips and events ---------- */
+
+.event-banners { list-style: none; margin: 0 16px 12px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.event-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
+  background: #FFF6DC;
+  border: 1px solid #E3D3A3;
+  color: #3D2A00;
+}
+a.event-banner:hover { color: #3D2A00; border-color: #C99A1F; }
+.event-banner-text { flex: 1; min-width: 0; font-size: 13px; font-weight: 600; }
+.event-banner-area { font-size: 12px; font-weight: 700; color: #5C4300; flex-shrink: 0; }
+
+.week-event {
+  align-self: flex-start;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  color: #3D2A00;
+  background: #FFE7A3;
+  border-radius: 5px;
+  padding: 2px 7px;
+}
+
+.events-screen { padding-bottom: 40px; }
+.event-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  color: var(--ink);
+}
+a.event-row:hover { color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
+.event-row.is-now { box-shadow: 0 0 0 2px #E3D3A3; }
+.event-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: #FFF6DC;
+  color: #5C4300;
+}
+.event-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+
+.date-pair { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.date-pair .box-input { width: 100%; }

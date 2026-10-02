@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import {
   acceptMyInvites,
   fetchAreas,
+  fetchEventsBetween,
   fetchMembers,
   fetchPeople,
   fetchOpenClosure,
@@ -23,6 +24,7 @@ export function useDocket(userId) {
   const [tasks, setTasks] = useState([])
   const [people, setPeople] = useState({}) // { userId: email } of people I share with
   const [areaPeople, setAreaPeople] = useState({}) // { areaId: [userId] } who's in each area
+  const [todayEvents, setTodayEvents] = useState([]) // trips and events happening today
   const [closure, setClosure] = useState(null) // today's close, if not reopened
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [error, setError] = useState(null)
@@ -36,12 +38,13 @@ export function useDocket(userId) {
     if (!quiet) setStatus('loading')
     try {
       const now = new Date()
-      const [nextAreas, nextTasks, nextClosure, nextPeople, members] = await Promise.all([
+      const [nextAreas, nextTasks, nextClosure, nextPeople, members, nextEvents] = await Promise.all([
         fetchAreas(),
         fetchTodayTasks(toLocalISODate(now), startOfLocalDayISO(now)),
         fetchOpenClosure(toLocalISODate(now)),
         fetchPeople().catch(() => ({})), // tags are a nicety
         fetchMembers().catch(() => []),
+        fetchEventsBetween(toLocalISODate(now), toLocalISODate(now)).catch(() => []),
       ])
       // Who's in each area: its owner plus everyone who has joined
       const byArea = {}
@@ -50,6 +53,7 @@ export function useDocket(userId) {
         if (m.joined && byArea[m.areaId] && !byArea[m.areaId].includes(m.userId)) byArea[m.areaId].push(m.userId)
       }
       setAreaPeople(byArea)
+      setTodayEvents(nextEvents)
       // Your own areas first (in your order), then areas shared with you
       nextAreas.sort((a, b) => (a.ownerId === userId) === (b.ownerId === userId) ? 0 : a.ownerId === userId ? -1 : 1)
       setAreas(nextAreas)
@@ -108,6 +112,7 @@ export function useDocket(userId) {
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'day_closures' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'areas' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'area_members' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'docket', table: 'events' }, scheduleReload)
       .subscribe()
 
     // Coming back to the app (or past midnight) also refreshes
@@ -151,6 +156,7 @@ export function useDocket(userId) {
     tasks,
     people,
     areaPeople,
+    todayEvents,
     closure,
     status,
     error,

@@ -7,6 +7,8 @@ import { MicIcon, PlusIcon, SlidersIcon } from '../components/Icons.jsx'
 import { formatHeaderDate, toLocalISODate } from '../lib/dates.js'
 import { inArea, isCarried, isDoneOn, isForMe, isOpen } from '../lib/tasks.js'
 import { isShared, usePeople } from '../lib/people.js'
+import { eventBanner } from '../lib/events.js'
+import { SuitcaseIcon } from '../components/Icons.jsx'
 
 /**
  * The Today screen.
@@ -14,7 +16,7 @@ import { isShared, usePeople } from '../lib/people.js'
  * selected (here). Every list below is worked out from those each time
  * the screen draws, so the lists can never disagree with the tasks.
  */
-export default function Today({ areas, tasks, onToggle, closure, onReopen, userEmail, onSignOut }) {
+export default function Today({ areas, tasks, todayEvents = [], onToggle, closure, onReopen, userEmail, onSignOut }) {
   const [areaFilter, setAreaFilter] = useState(null) // null = All
   const navigate = useNavigate()
 
@@ -29,7 +31,7 @@ export default function Today({ areas, tasks, onToggle, closure, onReopen, userE
   // The lists respect the selected area
   // "Mine": hide tasks assigned to someone else. Only offered once
   // something is shared, since before that everything is yours anyway.
-  const { meId, areaPeople } = usePeople()
+  const { meId, people, areaPeople } = usePeople()
   const anyShared = areas.some((a) => isShared(areaPeople, a.id))
   const [mineOnly, setMineOnly] = useState(false)
   const shown = tasks.filter((t) => inArea(t, areaFilter) && (!mineOnly || !anyShared || isForMe(t, meId)))
@@ -74,6 +76,20 @@ export default function Today({ areas, tasks, onToggle, closure, onReopen, userE
         onChange={setAreaFilter}
         mine={anyShared ? { on: mineOnly, onToggle: () => setMineOnly((v) => !v) } : null}
       />
+
+      {todayEvents.length > 0 && (
+        <ul className="event-banners" aria-label="Today's trips and events">
+          {todayEvents.map((ev) => (
+            <li key={ev.id}>
+              <Link to={`/events/${ev.id}`} className="event-banner">
+                <SuitcaseIcon size={18} />
+                <span className="event-banner-text">{eventBanner(ev, todayISO, meId, people)}</span>
+                {areasById[ev.areaId] && <span className="event-banner-area">{areasById[ev.areaId].name}</span>}
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
 
       {closure && (
         <div className="closed-bar" role="status">

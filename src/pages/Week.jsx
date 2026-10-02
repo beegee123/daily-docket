@@ -2,7 +2,10 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import AreaChips from '../components/AreaChips.jsx'
 import ViewSwitch from '../components/ViewSwitch.jsx'
-import { fetchTasksBetween } from '../lib/api.js'
+import { fetchEventsBetween, fetchTasksBetween } from '../lib/api.js'
+import { coversDay, eventTag } from '../lib/events.js'
+import { usePeople } from '../lib/people.js'
+import { SuitcaseIcon } from '../components/Icons.jsx'
 import { addDaysISO, dayParts, startOfWeekISO, toLocalISODate } from '../lib/dates.js'
 import { inArea } from '../lib/tasks.js'
 
@@ -31,6 +34,8 @@ export default function Week({ areas, changeSignal }) {
   const areaFilter = areas.some((a) => a.id === requestedArea) ? requestedArea : null
   const setAreaFilter = (id) => setParams(buildParams(weekStart, id), { replace: true })
   const [tasks, setTasks] = useState(null) // null = loading
+  const [events, setEvents] = useState([])
+  const { meId, people } = usePeople()
   const [error, setError] = useState(null)
 
   useEffect(() => {
@@ -46,6 +51,10 @@ export default function Week({ areas, changeSignal }) {
         }
       })
       .catch((e) => !cancelled && setError(e.message))
+    // Trips and events for the whole week, past days included
+    fetchEventsBetween(weekStart, weekEnd)
+      .then((rows) => !cancelled && setEvents(rows))
+      .catch(() => {})
     return () => {
       cancelled = true
     }
@@ -81,6 +90,9 @@ export default function Week({ areas, changeSignal }) {
           <span className="summary">{tasks === null ? 'Loading…' : `${total} ${total === 1 ? 'task' : 'tasks'} planned`}</span>
         </div>
         <div className="header-actions">
+          <Link to="/events" className="icon-btn" aria-label="Trips and events">
+            <SuitcaseIcon />
+          </Link>
           <button
             type="button"
             className="icon-btn"
@@ -128,6 +140,7 @@ export default function Week({ areas, changeSignal }) {
             const { weekday, day } = dayParts(iso)
             const past = iso < todayISO
             const isToday = iso === todayISO
+            const dayEvents = events.filter((ev) => coversDay(ev, iso) && (!areaFilter || ev.areaId === areaFilter))
             const preview = dayTasks.slice(0, 2)
             const more = dayTasks.length - preview.length
 
@@ -138,6 +151,11 @@ export default function Week({ areas, changeSignal }) {
                   <span className="week-day">{day}</span>
                 </span>
                 <span className="week-tasks">
+                  {dayEvents.map((ev) => (
+                    <span key={ev.id} className="week-event">
+                      {eventTag(ev, meId, people)}
+                    </span>
+                  ))}
                   {past ? (
                     <span className="week-empty">Past · open tasks are on Today</span>
                   ) : dayTasks.length === 0 ? (

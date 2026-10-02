@@ -402,3 +402,75 @@ export async function leaveArea(areaId, userId) {
   if (error) throw error
   if (!data?.length) throw new Error("Couldn't leave that area.")
 }
+
+// ---------- Trips and events (supabase/014_events.sql) ----------
+
+function eventFromDb(row) {
+  return {
+    id: row.id,
+    areaId: row.area_id,
+    createdBy: row.created_by,
+    personId: row.person_id,
+    title: row.title,
+    startDate: row.start_date,
+    endDate: row.end_date,
+    notes: row.notes,
+  }
+}
+
+const EVENT_COLUMNS = 'id, area_id, created_by, person_id, title, start_date, end_date, notes'
+
+/** Events touching any day from..to (inclusive). */
+export async function fetchEventsBetween(fromISO, toISO) {
+  const { data, error } = await supabase
+    .from('events')
+    .select(EVENT_COLUMNS)
+    .lte('start_date', toISO)
+    .gte('end_date', fromISO)
+    .order('start_date')
+  if (error) throw error
+  return data.map(eventFromDb)
+}
+
+/** Everything not over yet, soonest first. */
+export async function fetchUpcomingEvents(todayISO) {
+  const { data, error } = await supabase
+    .from('events')
+    .select(EVENT_COLUMNS)
+    .gte('end_date', todayISO)
+    .order('start_date')
+    .limit(100)
+  if (error) throw error
+  return data.map(eventFromDb)
+}
+
+export async function fetchEvent(id) {
+  const { data, error } = await supabase.from('events').select(EVENT_COLUMNS).eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? eventFromDb(data) : null
+}
+
+export async function saveEvent({ id = null, areaId, personId, title, startDate, endDate, notes }) {
+  const row = {
+    area_id: areaId,
+    person_id: personId || null,
+    title: title.trim(),
+    start_date: startDate,
+    end_date: endDate,
+    notes: notes?.trim() || null,
+  }
+  const { data, error } = id
+    ? await supabase.from('events').update(row).eq('id', id).select('id')
+    : await supabase.from('events').insert(row).select('id')
+  if (error) {
+    if (error.code === '23514') throw new Error('The end date can\'t be before the start date.')
+    throw error
+  }
+  if (!data?.length) throw new Error('That trip or event could not be saved.')
+}
+
+export async function deleteEvent(id) {
+  const { data, error } = await supabase.from('events').delete().eq('id', id).select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error('That trip or event could not be deleted.')
+}
