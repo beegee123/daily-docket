@@ -293,3 +293,52 @@ export async function saveSettings(userId, { digestOn, digestTime, digestDays })
   const { error } = await supabase.from('user_settings').upsert(row, { onConflict: 'user_id' })
   if (error) throw error
 }
+
+// ---------- Managing areas (supabase/011_manage_areas.sql) ----------
+
+/** Turn database errors into something worth reading. */
+function areaError(error) {
+  if (error?.code === '23505') return new Error('You already have an area with that name.')
+  if (error?.code === '23514') return new Error('That colour or name isn\'t allowed.')
+  return error
+}
+
+/** { [areaId]: { open, total } } — how many tasks each area has. */
+export async function fetchAreaCounts() {
+  const { data, error } = await supabase.from('task_areas').select('area_id, tasks!inner(status, dropped_at)')
+  if (error) throw error
+  const counts = {}
+  for (const row of data) {
+    const c = (counts[row.area_id] ??= { open: 0, total: 0 })
+    c.total++
+    if (row.tasks.status !== 'done' && !row.tasks.dropped_at) c.open++
+  }
+  return counts
+}
+
+export async function createArea({ name, color, sortOrder }) {
+  const { error } = await supabase.from('areas').insert({ name: name.trim(), color, sort_order: sortOrder })
+  if (error) throw areaError(error)
+}
+
+export async function updateArea(id, { name, color }) {
+  const { data, error } = await supabase
+    .from('areas')
+    .update({ name: name.trim(), color })
+    .eq('id', id)
+    .select('id')
+  if (error) throw areaError(error)
+  if (!data?.length) throw new Error('That area no longer exists.')
+}
+
+/** Move the area's tasks to another area, then delete it. Returns tasks moved. */
+export async function deleteArea(id, moveToId) {
+  const { data, error } = await supabase.rpc('delete_area', { p_area: id, p_move_to: moveToId ?? null })
+  if (error) throw error
+  return data ?? 0
+}
+
+export async function reorderAreas(ids) {
+  const { error } = await supabase.rpc('reorder_areas', { p_ids: ids })
+  if (error) throw error
+}

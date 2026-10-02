@@ -87,6 +87,7 @@ export function useDocket(userId) {
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'tasks' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'task_areas' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'day_closures' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'docket', table: 'areas' }, scheduleReload)
       .subscribe()
 
     // Coming back to the app (or past midnight) also refreshes

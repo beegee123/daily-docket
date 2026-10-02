@@ -671,3 +671,68 @@ a.btn-secondary:hover { color: var(--cobalt); }
 .time-input { height: 44px; width: 120px; flex-shrink: 0; }
 .settings-row .chip-row { flex-wrap: nowrap; }
 .chip:disabled { cursor: default; }
+
+/* ---------- Areas screen ---------- */
+
+.settings-link { color: var(--ink); }
+.settings-link:hover { color: var(--ink); background: var(--paper); }
+.chevron { font-size: 22px; color: var(--muted); }
+
+.areas-screen { padding-bottom: 40px; }
+.area-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.area-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 60px;
+  padding: 8px 10px 8px 14px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+}
+.area-swatch { width: 22px; height: 22px; border-radius: 7px; flex-shrink: 0; }
+.area-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.area-actions { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.icon-btn.small { width: 36px; height: 36px; border-radius: 10px; }
+
+.area-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: 0 0 0 2px var(--ink);
+}
+.swatch-row { display: flex; flex-wrap: wrap; gap: 10px; }
+.swatch-option { position: relative; cursor: pointer; }
+.swatch-dot {
+  display: block;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .35);
+}
+.swatch-option input:checked + .swatch-dot { box-shadow: 0 0 0 3px var(--card), 0 0 0 5px var(--ink); }
+.swatch-option input:focus-visible + .swatch-dot { outline: 2px solid var(--cobalt); outline-offset: 4px; }
+
+.editor-actions { display: flex; align-items: center; gap: 10px; }
+.push-right { margin-left: auto; align-self: center; }
+.delete-box {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  border-radius: var(--radius-control);
+  background: #FBE9E7;
+}
+.btn-danger {
+  min-height: 44px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: var(--radius-control);
+  background: #A3261B;
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 700;
+}
+.btn-danger:disabled { opacity: .6; cursor: default; }

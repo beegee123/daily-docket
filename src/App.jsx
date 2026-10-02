@@ -5,6 +5,7 @@ import TaskForm from './pages/TaskForm.jsx'
 import CloseDay from './pages/CloseDay.jsx'
 import History from './pages/History.jsx'
 import Settings from './pages/Settings.jsx'
+import Areas from './pages/Areas.jsx'
 import Week from './pages/Week.jsx'
 import Day from './pages/Day.jsx'
 import ShiftPlan from './pages/ShiftPlan.jsx'
@@ -99,10 +100,12 @@ function Docket({ user }) {
           path="/day/:date"
           element={<Day areas={areas} userId={user.id} changeSignal={tasks} onChanged={refresh} announce={announce} />}
         />
+        <Route path="/settings/areas" element={<Areas areas={areas} onChanged={refresh} announce={announce} />} />
         <Route
           path="/settings"
           element={
             <Settings
+              areaCount={areas.length}
               userId={user.id}
               userEmail={user.email}
               onSignOut={() => supabase.auth.signOut()}

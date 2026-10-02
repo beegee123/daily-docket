@@ -15,7 +15,7 @@ import {
 } from '../lib/push.js'
 
 /** Settings: notifications on this device, the morning digest, and your account. */
-export default function Settings({ userId, userEmail, onSignOut, announce }) {
+export default function Settings({ areaCount, userId, userEmail, onSignOut, announce }) {
   const [on, setOn] = useState(null) // null = checking
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
@@ -118,6 +118,19 @@ export default function Settings({ userId, userEmail, onSignOut, announce }) {
       </header>
 
       <main className="lists">
+        <section>
+          <h2 className="section-title">Areas</h2>
+          <div className="settings-card">
+            <Link to="/settings/areas" className="settings-row settings-link">
+              <div className="settings-text">
+                <span className="settings-name">Manage areas</span>
+                <span className="settings-sub">Add, rename, recolour, reorder or delete · {areaCount} areas</span>
+              </div>
+              <span aria-hidden="true" className="chevron">›</span>
+            </Link>
+          </div>
+        </section>
+
         <section>
           <h2 className="section-title">Notifications</h2>
           <div className="settings-card">

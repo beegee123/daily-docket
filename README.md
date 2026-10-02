@@ -31,6 +31,7 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 8. `008_reschedule.sql` — moves many tasks to new days at once (Shift plan and its Undo)
 9. `009_digest.sql` — digest settings per person, and who is due a digest right now
 10. `010_digest_schedule.sql` — runs the digest every 15 minutes (needs `CRON_SECRET`, see the file)
+11. `011_manage_areas.sql` — delete an area safely (moving its tasks) and reorder areas
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 
