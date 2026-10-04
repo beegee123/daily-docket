@@ -358,6 +358,19 @@ export default function Settings({ areaCount, userId, userEmail, onSignOut, anno
         </section>
 
         <section>
+          <h2 className="section-title">Help</h2>
+          <div className="settings-card">
+            <Link to="/help" className="settings-row settings-link">
+              <div className="settings-text">
+                <span className="settings-name">How Daily Docket works</span>
+                <span className="settings-sub">Carry-over, Close the day, sharing, trips, notifications</span>
+              </div>
+              <span aria-hidden="true" className="chevron">›</span>
+            </Link>
+          </div>
+        </section>
+
+        <section>
           <h2 className="section-title">Account</h2>
           <div className="settings-card">
             <div className="settings-row">

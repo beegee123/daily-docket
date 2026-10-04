@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router'
 import { closeDayWithRecord } from '../lib/api.js'
+import HelpLink from '../components/HelpLink.jsx'
 import { daysBetween, daysFromToday, formatShortDate, toLocalISODate } from '../lib/dates.js'
 import { isCarried, isDoneOn, isMyJob, isOpen } from '../lib/tasks.js'
 
@@ -84,6 +85,7 @@ export default function CloseDay({ areas, tasks, userId, onClosed }) {
     <div className="screen close-day">
       <header className="close-header">
         <Link to="/" className="text-btn back-link">Back to today</Link>
+        <HelpLink topic="close" label="How Close the day works" />
         <span className="eyebrow">DAILY DOCKET</span>
         <h1>Close the day</h1>
         <p className="lead">

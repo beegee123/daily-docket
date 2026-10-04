@@ -43,6 +43,10 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 
 After running `001`, add `docket` to **Exposed schemas** in the project's Data API settings so the app can reach it.
 
+## User guide
+
+The in-app guide is `src/pages/Help.jsx` (Settings → Help, or the "?" on Close the day and Shift plan). When a screen changes, update its section there too.
+
 ## Running locally
 
 1. Copy `.env.example` to `.env.local` and fill in the Supabase URL and key (the same values Pantry uses).

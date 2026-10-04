@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, Navigate, useNavigate, useParams } from 'react-router'
+import HelpLink from '../components/HelpLink.jsx'
 import { fetchOpenInArea, reschedule } from '../lib/api.js'
 import { formatDayMonth, toLocalISODate } from '../lib/dates.js'
 import { planShift } from '../lib/shift.js'
@@ -74,6 +75,7 @@ export default function ShiftPlan({ areas, userId, onChanged, announce }) {
         <button type="button" className="text-btn back-link" onClick={() => navigate(-1)}>
           Back to week
         </button>
+        <HelpLink topic="shift" label="How Shift plan works" />
         <span className="eyebrow">SHIFT PLAN</span>
         <h1 className="shift-title">
           <span className="shift-swatch" style={{ background: area.color }} aria-hidden="true" />

@@ -11,6 +11,7 @@ import EventForm from './pages/EventForm.jsx'
 import Week from './pages/Week.jsx'
 import Day from './pages/Day.jsx'
 import ShiftPlan from './pages/ShiftPlan.jsx'
+import Help from './pages/Help.jsx'
 import SignIn from './pages/SignIn.jsx'
 import { useDocket } from './hooks/useDocket.js'
 import { useSession } from './hooks/useSession.js'
@@ -120,6 +121,7 @@ function Docket({ user }) {
             />
           }
         />
+        <Route path="/help" element={<Help />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 
