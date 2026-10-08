@@ -937,11 +937,27 @@ a.event-row:hover { color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 .week-panel-empty { margin: 0; }
 .week-days-title { margin-top: 4px; }
 
-.job-card { background: var(--card); border-radius: var(--radius-card); padding: 12px 12px 6px; }
+.job-card { background: var(--card); border-radius: var(--radius-card); padding: 0 12px; }
+.job-card.is-open { padding-bottom: 6px; }
+.job-toggle {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 0 8px;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.job-toggle:disabled { cursor: default; }
+.job-chevron { display: inline-block; width: 14px; text-align: center; font-size: 20px; line-height: 1; transition: transform .15s; }
+.job-card.is-open .job-chevron { transform: rotate(90deg); }
 .job-head { display: flex; align-items: center; gap: 8px; padding: 0 2px; }
 .job-name { flex: 1; font: 600 16px var(--font-display); }
 .job-count { font-size: 13px; font-weight: 700; color: var(--muted); }
-.job-bar { height: 8px; margin: 8px 2px 4px; background: var(--line-soft); border-radius: 4px; overflow: hidden; }
+.job-bar { display: block; height: 8px; margin: 8px 2px 0; background: var(--line-soft); border-radius: 4px; overflow: hidden; }
 .job-bar > span { display: block; height: 100%; border-radius: 4px; transition: width .25s; }
 
 .job-list { list-style: none; margin: 0; padding: 0; }

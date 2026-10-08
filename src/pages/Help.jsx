@@ -136,7 +136,10 @@ export const HELP_SECTIONS = [
             For work planned by the week, not the day. Make each job its own area (like TDX and V1), then add tasks
             with <strong>This week</strong>, or tap <strong>Add</strong> on the This week panel.
           </li>
-          <li>The panel at the top of Week groups them by job, with "1 of 3" and a progress bar. Tick them there.</li>
+          <li>
+            The panel at the top of Week has one card per job: its name, "1 of 3" and a progress bar. Tap a card to open
+            it and see its tasks; tap again to fold it. Picking an area chip opens that job's card.
+          </li>
           <li>
             <strong>Steps:</strong> give a task a checklist in its notes and it shows "2/5". Tap that to tick steps
             without opening the task. A half-done task fills half its share of the bar. Ticking the last step asks

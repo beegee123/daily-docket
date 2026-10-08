@@ -21,6 +21,17 @@ export default function WeekPanel({ areas, weekStart, thisWeek, areaFilter, chan
   const [open, setOpen] = useState(() => new Set()) // tasks with their subtasks showing
   const [askDone, setAskDone] = useState(null) // task id: "all steps ticked, mark done?"
   const [reloadKey, setReloadKey] = useState(0)
+  // Jobs start folded: just name, "1 of 3" and the bar. Which ones you
+  // opened is remembered on this device.
+  const [openJobs, setOpenJobs] = useState(readOpenJobs)
+  const toggleJob = (areaId) =>
+    setOpenJobs((prev) => {
+      const next = new Set(prev)
+      if (next.has(areaId)) next.delete(areaId)
+      else next.add(areaId)
+      saveOpenJobs(next)
+      return next
+    })
 
   useEffect(() => {
     let cancelled = false
@@ -117,27 +128,44 @@ export default function WeekPanel({ areas, weekStart, thisWeek, areaFilter, chan
 
       {groups.map((g) => {
         const pct = Math.round(g.progress * 100)
+        // With an area chip picked there's only one job, so show its tasks
+        const expanded = Boolean(areaFilter) || openJobs.has(g.area.id)
         return (
-          <div key={g.area.id} className="job-card">
-            <div className="job-head">
-              <span className="dot" style={{ background: g.area.color }} />
-              <span className="job-name">{g.area.name}</span>
-              <span className="job-count">
-                {g.done} of {g.total}
-              </span>
-            </div>
-            <div
-              className="job-bar"
-              role="progressbar"
-              aria-label={`${g.area.name} progress`}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-valuenow={pct}
+          <div key={g.area.id} className={`job-card${expanded ? ' is-open' : ''}`}>
+            <button
+              type="button"
+              className="job-toggle"
+              aria-expanded={expanded}
+              aria-controls={`job-${g.area.id}`}
+              disabled={Boolean(areaFilter)}
+              onClick={() => toggleJob(g.area.id)}
             >
-              <span style={{ width: `${pct}%`, background: g.area.color }} />
-            </div>
+              <span className="job-head">
+                <span className="dot" style={{ background: g.area.color }} />
+                <span className="job-name">{g.area.name}</span>
+                <span className="job-count">
+                  {g.done} of {g.total}
+                </span>
+                {!areaFilter && (
+                  <span aria-hidden="true" className="chevron job-chevron">
+                    ›
+                  </span>
+                )}
+              </span>
+              <span
+                className="job-bar"
+                role="progressbar"
+                aria-label={`${g.area.name} progress`}
+                aria-valuemin={0}
+                aria-valuemax={100}
+                aria-valuenow={pct}
+              >
+                <span style={{ width: `${pct}%`, background: g.area.color }} />
+              </span>
+            </button>
 
-            <ul className="job-list">
+            {expanded && (
+            <ul className="job-list" id={`job-${g.area.id}`}>
               {g.items.map(({ task, steps, carried }) => {
                 const done = task.status === 'done'
                 const showing = open.has(task.id)
@@ -217,6 +245,7 @@ export default function WeekPanel({ areas, weekStart, thisWeek, areaFilter, chan
                 )
               })}
             </ul>
+            )}
           </div>
         )
       })}
@@ -226,6 +255,24 @@ export default function WeekPanel({ areas, weekStart, thisWeek, areaFilter, chan
       )}
     </section>
   )
+}
+
+// Which job cards are open, remembered on this device only. Storage can be
+// unavailable (private browsing), so every read and write is guarded.
+const OPEN_JOBS_KEY = 'docket.openJobs'
+function readOpenJobs() {
+  try {
+    return new Set(JSON.parse(localStorage.getItem(OPEN_JOBS_KEY) ?? '[]'))
+  } catch {
+    return new Set()
+  }
+}
+function saveOpenJobs(set) {
+  try {
+    localStorage.setItem(OPEN_JOBS_KEY, JSON.stringify([...set]))
+  } catch {
+    // Not remembered this time; nothing else depends on it
+  }
 }
 
 function TickCircle({ done }) {
