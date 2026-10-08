@@ -7,7 +7,8 @@ import { toLocalISODate } from './dates.js'
 
 /** Not done, not dropped, and on the docket today or earlier. */
 export function isOpen(task, todayISO) {
-  return !task.droppedAt && task.status !== 'done' && task.scheduledDate <= todayISO
+  // A this-week task has no day, so it's never open on Today
+  return !task.droppedAt && task.status !== 'done' && Boolean(task.scheduledDate) && task.scheduledDate <= todayISO
 }
 
 /** Open, and first put on a docket before today. */

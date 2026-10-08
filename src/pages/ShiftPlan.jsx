@@ -126,7 +126,9 @@ export default function ShiftPlan({ areas, userId, onChanged, announce }) {
               ? `No open ${area.name} tasks to move.`
               : days === 0
                 ? 'Pick how many days to shift.'
-                : 'Nothing would change.'}
+                : plan.weekTasksStaying > 0
+                  ? `Nothing would change: this-week tasks only move in whole weeks (7 days or more).`
+                  : 'Nothing would change.'}
           </p>
         )}
 
@@ -185,6 +187,9 @@ export default function ShiftPlan({ areas, userId, onChanged, announce }) {
                     .join('; ')}
                   {shared.length > 4 ? ` and ${shared.length - 4} more` : ''}.
                 </li>
+              )}
+              {plan.moves.some((m) => m.week) && (
+                <li>This-week tasks move a whole week for every 7 days.</li>
               )}
               <li>Moved tasks won't show as carried over. This counts as re-planning.</li>
             </ul>

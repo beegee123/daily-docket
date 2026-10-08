@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router'
 import AreaChips from '../components/AreaChips.jsx'
 import ViewSwitch from '../components/ViewSwitch.jsx'
+import WeekPanel from '../components/WeekPanel.jsx'
 import { fetchEventsBetween, fetchTasksBetween } from '../lib/api.js'
 import { coversDay, eventTag } from '../lib/events.js'
 import { usePeople } from '../lib/people.js'
@@ -18,7 +19,7 @@ import { inArea } from '../lib/tasks.js'
  * changeSignal: App's task list. It changes whenever any task changes
  * (including live sync), which is our cue to reload this week.
  */
-export default function Week({ areas, changeSignal }) {
+export default function Week({ areas, changeSignal, onChanged, announce }) {
   const todayISO = toLocalISODate()
   const thisWeek = startOfWeekISO(todayISO)
 
@@ -135,6 +136,17 @@ export default function Week({ areas, changeSignal }) {
           </p>
         )}
 
+        <WeekPanel
+          areas={areas}
+          weekStart={weekStart}
+          thisWeek={thisWeek}
+          areaFilter={areaFilter}
+          changeSignal={changeSignal}
+          onChanged={onChanged}
+          announce={announce}
+        />
+
+        <h2 className="section-title week-days-title">Day by day</h2>
         <ul className="week-list">
           {days.map(({ iso, tasks: dayTasks }) => {
             const { weekday, day } = dayParts(iso)

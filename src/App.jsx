@@ -36,7 +36,7 @@ export default function App() {
 }
 
 function Docket({ user }) {
-  const { areas, tasks, people, areaPeople, todayEvents, closure, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
+  const { areas, tasks, people, areaPeople, todayEvents, weekTasks, closure, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
     useDocket(user.id)
 
   if (status === 'loading') return <StatusScreen title="Loading your docket…" />
@@ -85,6 +85,7 @@ function Docket({ user }) {
               tasks={tasks}
               onToggle={toggle}
               todayEvents={todayEvents}
+              weekTasks={weekTasks}
               closure={closure}
               onReopen={handleReopen}
               userEmail={user.email}
@@ -99,7 +100,7 @@ function Docket({ user }) {
           path="/history"
           element={<History areas={areas} userId={user.id} onChanged={refresh} announce={announce} />}
         />
-        <Route path="/week" element={<Week areas={areas} changeSignal={tasks} />} />
+        <Route path="/week" element={<Week areas={areas} changeSignal={tasks} onChanged={refresh} announce={announce} />} />
         <Route path="/events" element={<Events areas={areas} changeSignal={tasks} />} />
         <Route path="/events/new" element={<EventForm areas={areas} onSaved={refresh} announce={announce} />} />
         <Route path="/events/:id" element={<EventForm areas={areas} onSaved={refresh} announce={announce} />} />

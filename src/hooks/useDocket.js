@@ -8,11 +8,12 @@ import {
   fetchPeople,
   fetchOpenClosure,
   fetchTodayTasks,
+  fetchWeekTasks,
   saveDoneState,
   seedStarterAreas,
   syncTimezone,
 } from '../lib/api.js'
-import { startOfLocalDayISO, toLocalISODate } from '../lib/dates.js'
+import { fromISODate, startOfLocalDayISO, startOfWeekISO, toLocalISODate } from '../lib/dates.js'
 import { toggleDone } from '../lib/tasks.js'
 
 /**
@@ -25,6 +26,7 @@ export function useDocket(userId) {
   const [people, setPeople] = useState({}) // { userId: email } of people I share with
   const [areaPeople, setAreaPeople] = useState({}) // { areaId: [userId] } who's in each area
   const [todayEvents, setTodayEvents] = useState([]) // trips and events happening today
+  const [weekTasks, setWeekTasks] = useState([]) // this-week tasks, for the summary on Today
   const [closure, setClosure] = useState(null) // today's close, if not reopened
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [error, setError] = useState(null)
@@ -38,13 +40,16 @@ export function useDocket(userId) {
     if (!quiet) setStatus('loading')
     try {
       const now = new Date()
-      const [nextAreas, nextTasks, nextClosure, nextPeople, members, nextEvents] = await Promise.all([
+      const thisWeek = startOfWeekISO(toLocalISODate(now))
+      const [nextAreas, nextTasks, nextClosure, nextPeople, members, nextEvents, nextWeek] = await Promise.all([
         fetchAreas(),
         fetchTodayTasks(toLocalISODate(now), startOfLocalDayISO(now)),
         fetchOpenClosure(toLocalISODate(now)),
         fetchPeople().catch(() => ({})), // tags are a nicety
         fetchMembers().catch(() => []),
         fetchEventsBetween(toLocalISODate(now), toLocalISODate(now)).catch(() => []),
+        // Before SQL 018 is run there's no week_of column; the summary just stays empty
+        fetchWeekTasks(thisWeek, fromISODate(thisWeek).toISOString()).catch(() => []),
       ])
       // Who's in each area: its owner plus everyone who has joined
       const byArea = {}
@@ -54,6 +59,7 @@ export function useDocket(userId) {
       }
       setAreaPeople(byArea)
       setTodayEvents(nextEvents)
+      setWeekTasks(nextWeek)
       // Your own areas first (in your order), then areas shared with you
       nextAreas.sort((a, b) => (a.ownerId === userId) === (b.ownerId === userId) ? 0 : a.ownerId === userId ? -1 : 1)
       setAreas(nextAreas)
@@ -157,6 +163,7 @@ export function useDocket(userId) {
     people,
     areaPeople,
     todayEvents,
+    weekTasks,
     closure,
     status,
     error,

@@ -928,3 +928,73 @@ a.event-row:hover { color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 .help-faq { margin: 0; display: flex; flex-direction: column; gap: 4px; }
 .help-faq dt { font-weight: 700; margin-top: 8px; }
 .help-faq dd { margin: 0; color: var(--muted); }
+
+/* ---------- This week panel (step 19) ---------- */
+
+.week-panel { display: flex; flex-direction: column; gap: 8px; margin-bottom: 18px; }
+.week-panel-head { display: flex; align-items: center; justify-content: space-between; }
+.add-week-link { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; }
+.week-panel-empty { margin: 0; }
+.week-days-title { margin-top: 4px; }
+
+.job-card { background: var(--card); border-radius: var(--radius-card); padding: 12px 12px 6px; }
+.job-head { display: flex; align-items: center; gap: 8px; padding: 0 2px; }
+.job-name { flex: 1; font: 600 16px var(--font-display); }
+.job-count { font-size: 13px; font-weight: 700; color: var(--muted); }
+.job-bar { height: 8px; margin: 8px 2px 4px; background: var(--line-soft); border-radius: 4px; overflow: hidden; }
+.job-bar > span { display: block; height: 100%; border-radius: 4px; transition: width .25s; }
+
+.job-list { list-style: none; margin: 0; padding: 0; }
+.job-item { border-top: 1px solid var(--line-soft); padding: 2px 0 4px; }
+.job-item:first-child { border-top: 0; }
+.job-row { display: flex; align-items: center; gap: 4px; min-height: 48px; }
+.job-row .tick { margin-left: -8px; }
+.job-title { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: 15px; font-weight: 600; color: var(--ink); text-decoration: none; }
+.job-item.is-done .job-title { color: var(--muted); text-decoration: line-through; }
+.job-item.is-done .tick { color: var(--muted); }
+.steps-btn {
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--card);
+  color: var(--ink);
+  font: 700 13px var(--font-body);
+  flex-shrink: 0;
+}
+.step-list { list-style: none; margin: 0 0 4px 36px; padding: 0; display: flex; flex-direction: column; }
+.step { display: flex; align-items: center; gap: 10px; min-height: 40px; font-size: 14px; cursor: pointer; }
+.step input { width: 20px; height: 20px; accent-color: var(--cobalt); flex-shrink: 0; }
+.step .is-checked { color: var(--muted); text-decoration: line-through; }
+.ask-done {
+  display: flex; align-items: center; gap: 4px 8px; flex-wrap: wrap;
+  margin: 2px 0 6px 36px; padding: 8px 10px;
+  background: var(--paper); border-radius: 10px;
+  font-size: 13px; font-weight: 600;
+}
+.ask-done .restore-btn { min-height: 36px; }
+.today-btn {
+  min-height: 36px;
+  padding: 0 8px;
+  border: 0;
+  background: transparent;
+  color: var(--cobalt);
+  font: 700 13px var(--font-body);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.job-row .carry-badge { flex-shrink: 0; white-space: nowrap; }
+
+/* "This week" summary on Today */
+.week-summary {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  margin: 0 16px 12px; padding: 8px 12px; min-height: 44px; box-sizing: border-box;
+  background: var(--card); border-radius: 12px;
+  font-size: 13px; font-weight: 600; color: var(--ink); text-decoration: none;
+}
+.week-summary-label { color: var(--muted); font-weight: 700; letter-spacing: .04em; font-size: 12px; }
+.week-summary-job { display: inline-flex; align-items: center; gap: 5px; }
+
+/* Paste a list */
+.paste-input { min-height: 140px; resize: vertical; font: 400 15px var(--font-body); }
+.paste-preview { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); }

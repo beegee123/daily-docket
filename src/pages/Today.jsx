@@ -4,7 +4,8 @@ import AreaChips from '../components/AreaChips.jsx'
 import TaskRow from '../components/TaskRow.jsx'
 import ViewSwitch from '../components/ViewSwitch.jsx'
 import { MicIcon, PlusIcon, SlidersIcon } from '../components/Icons.jsx'
-import { formatHeaderDate, toLocalISODate } from '../lib/dates.js'
+import { formatHeaderDate, startOfWeekISO, toLocalISODate } from '../lib/dates.js'
+import { tasksForWeek, weekGroups } from '../lib/week.js'
 import { inArea, isCarried, isDoneOn, isForMe, isOpen } from '../lib/tasks.js'
 import { isShared, usePeople } from '../lib/people.js'
 import { eventBanner } from '../lib/events.js'
@@ -16,7 +17,7 @@ import { SuitcaseIcon } from '../components/Icons.jsx'
  * selected (here). Every list below is worked out from those each time
  * the screen draws, so the lists can never disagree with the tasks.
  */
-export default function Today({ areas, tasks, todayEvents = [], onToggle, closure, onReopen, userEmail, onSignOut }) {
+export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], onToggle, closure, onReopen, userEmail, onSignOut }) {
   const [areaFilter, setAreaFilter] = useState(null) // null = All
   const navigate = useNavigate()
 
@@ -45,6 +46,10 @@ export default function Today({ areas, tasks, todayEvents = [], onToggle, closur
   const doneToday = shown
     .filter((t) => isDoneOn(t, todayISO))
     .sort((a, b) => b.completedAt.localeCompare(a.completedAt)) // most recent first
+
+  // "This week: TDX 1/3 · V1 0/3" — the week's goals per job, at a glance
+  const thisWeek = startOfWeekISO(todayISO)
+  const weekJobs = weekGroups(tasksForWeek(weekTasks, thisWeek, thisWeek), areas, { weekStart: thisWeek, areaFilter })
 
   const rowProps = { areasById, todayISO, onToggle }
   const [reopening, setReopening] = useState(false)
@@ -76,6 +81,22 @@ export default function Today({ areas, tasks, todayEvents = [], onToggle, closur
         onChange={setAreaFilter}
         mine={anyShared ? { on: mineOnly, onToggle: () => setMineOnly((v) => !v) } : null}
       />
+
+      {weekJobs.length > 0 && (
+        <Link
+          to={areaFilter ? `/week?area=${areaFilter}` : '/week'}
+          className="week-summary"
+          aria-label={`This week: ${weekJobs.map((g) => `${g.area.name} ${g.done} of ${g.total} done`).join(', ')}. Open Week.`}
+        >
+          <span className="week-summary-label">THIS WEEK</span>
+          {weekJobs.map((g) => (
+            <span key={g.area.id} className="week-summary-job">
+              <span className="dot" style={{ background: g.area.color }} />
+              {g.area.name} {g.done}/{g.total}
+            </span>
+          ))}
+        </Link>
+      )}
 
       {todayEvents.length > 0 && (
         <ul className="event-banners" aria-label="Today's trips and events">

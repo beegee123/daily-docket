@@ -17,7 +17,8 @@ function taskFromDb(row) {
     title: row.title,
     notes: row.notes,
     status: row.status,
-    scheduledDate: row.scheduled_date,
+    scheduledDate: row.scheduled_date, // null for a this-week task
+    weekOf: row.week_of ?? null, // the Monday of a this-week task
     originalDate: row.original_date,
     dueDate: row.due_date,
     completedAt: row.completed_at,
@@ -52,7 +53,7 @@ export async function fetchAreas() {
  * so "today" means today where you are, not today in UTC.
  */
 const TASK_COLUMNS =
-  'id, title, notes, status, scheduled_date, original_date, due_date, completed_at, dropped_at, created_by, assigned_to, completed_by, task_areas(area_id)'
+  'id, title, notes, status, scheduled_date, week_of, original_date, due_date, completed_at, dropped_at, created_by, assigned_to, completed_by, task_areas(area_id)'
 
 export async function fetchTodayTasks(todayISO, startOfTodayISO) {
   const { data, error } = await supabase
@@ -98,12 +99,14 @@ export async function fetchTask(id) {
  * Create or update a task and its areas in one transaction
  * (see supabase/003_save_task.sql). Returns the task id.
  */
-export async function saveTask({ id = null, title, notes, scheduledDate, dueDate, areaIds, assignedTo = null }) {
+export async function saveTask({ id = null, title, notes, scheduledDate, weekOf = null, dueDate, areaIds, assignedTo = null }) {
   const { data, error } = await supabase.rpc('save_task', {
     p_id: id,
     p_title: title,
     p_notes: notes,
-    p_scheduled_date: scheduledDate,
+    // A this-week task sends its week and no day (supabase/018_week_tasks.sql)
+    p_scheduled_date: weekOf ? null : scheduledDate,
+    p_week_of: weekOf || null,
     p_due_date: dueDate || null,
     p_area_ids: areaIds,
     p_assigned_to: assignedTo || null,
@@ -512,4 +515,46 @@ export async function resetCalendarToken() {
   const { data, error } = await supabase.rpc('reset_calendar_token')
   if (error) throw error
   return data
+}
+
+// ---------- This-week tasks (supabase/018_week_tasks.sql) ----------
+
+/**
+ * This-week tasks up to a given week: everything still open, plus anything
+ * finished since the start of this week. src/lib/week.js picks out which
+ * belong to the week on screen.
+ */
+export async function fetchWeekTasks(upToWeek, sinceISO) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(TASK_COLUMNS)
+    .not('week_of', 'is', null)
+    .is('dropped_at', null)
+    .lte('week_of', upToWeek)
+    .or(`status.neq.done,completed_at.gte."${sinceISO}"`)
+    .order('week_of')
+  if (error) throw error
+  return data.map(taskFromDb)
+}
+
+/** "Do today": a this-week task becomes a normal task on that day (its week is cleared). */
+export async function moveToDay(taskId, dayISO) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({ scheduled_date: dayISO, original_date: dayISO })
+    .eq('id', taskId)
+    .select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error('That task could not be moved.')
+}
+
+/** Save a task's notes only: used when ticking a subtask in the week panel. */
+export async function saveNotes(taskId, notes) {
+  const { data, error } = await supabase
+    .from('tasks')
+    .update({ notes: notes.trim() ? notes : null })
+    .eq('id', taskId)
+    .select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error('That task could not be updated.')
 }

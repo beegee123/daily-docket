@@ -57,7 +57,8 @@ export const HELP_SECTIONS = [
             Tap <strong>+</strong> at the bottom of Today, or type a title in the bar and press Enter.
           </li>
           <li>
-            <strong>On my docket</strong> is the day you plan to do it: Today, Tomorrow or Pick a day.
+            <strong>On my docket</strong> is the day you plan to do it: Today, Tomorrow or Pick a day. Or{' '}
+            <strong>This week</strong>, for something to finish this week on no set day (see Week).
           </li>
           <li>
             <strong>Due date</strong> is optional: the real deadline, if there is one. The task still carries over day
@@ -67,6 +68,11 @@ export const HELP_SECTIONS = [
           <li>
             <strong>Save and add another</strong> keeps the form open with the same areas and day, so you can enter a
             batch, like a week of study sessions. After the first one, Enter adds the next.
+          </li>
+          <li>
+            <strong>Paste a list instead</strong>, under the title, turns several lines into separate tasks: one per
+            line, all with the areas and day or week you pick. Copy a list from your notes app and paste it. Indented
+            lines become steps (a checklist) of the line above.
           </li>
           <li>
             <strong>Drop this task</strong>, at the bottom of the form, takes it off your docket. You can restore it
@@ -116,13 +122,36 @@ export const HELP_SECTIONS = [
     id: 'week',
     title: 'Week',
     body: (
-      <ul>
-        <li>One week at a time, Monday to Sunday. The arrows page to earlier and later weeks.</li>
-        <li>Tap a day to see all of its tasks and add one on that day.</li>
-        <li>Trips and events show as tags on the days they cover.</li>
-        <li>The suitcase opens Trips &amp; events.</li>
-        <li>Pick an area chip to see only that area. That also shows Shift plan.</li>
-      </ul>
+      <>
+        <ul>
+          <li>One week at a time, Monday to Sunday. The arrows page to later weeks.</li>
+          <li>Tap a day to see all of its tasks and add one on that day.</li>
+          <li>Trips and events show as tags on the days they cover.</li>
+          <li>The suitcase opens Trips &amp; events.</li>
+          <li>Pick an area chip to see only that area. That also shows Shift plan.</li>
+        </ul>
+        <h3>This week: goals for the whole week</h3>
+        <ul>
+          <li>
+            For work planned by the week, not the day. Make each job its own area (like TDX and V1), then add tasks
+            with <strong>This week</strong>, or tap <strong>Add</strong> on the This week panel.
+          </li>
+          <li>The panel at the top of Week groups them by job, with "1 of 3" and a progress bar. Tick them there.</li>
+          <li>
+            <strong>Steps:</strong> give a task a checklist in its notes and it shows "2/5". Tap that to tick steps
+            without opening the task. A half-done task fills half its share of the bar. Ticking the last step asks
+            whether to mark the task done.
+          </li>
+          <li>
+            <strong>→ Today</strong>, at the end of a row, moves that task onto Today as a normal task.
+          </li>
+          <li>
+            Anything unfinished moves into the next week on its own, marked "↻ 1 week". Close the day leaves these
+            alone, and they're not in the morning digest.
+          </li>
+          <li>Today shows a one-line summary ("This week: TDX 1/3 · V1 0/3"). Tap it to open Week.</li>
+        </ul>
+      </>
     ),
   },
   {
@@ -138,6 +167,7 @@ export const HELP_SECTIONS = [
           <li>Choose how many days to move every open task in that area: forward if you're behind, back if you're ahead.</li>
           <li>The preview shows where the last task, and so your finish date, will land.</li>
           <li>Nothing moves until you tap Shift. Undo appears for a few seconds afterwards.</li>
+          <li>This-week tasks move a whole week for every 7 days; shorter shifts leave them where they are.</li>
           <li>It only moves your own tasks.</li>
         </ul>
       </>
@@ -233,7 +263,8 @@ export const HELP_SECTIONS = [
         </dd>
         <dt>A task disappeared</dt>
         <dd>
-          It was probably moved to a later day: look on Week. Dropped tasks are in History, where you can restore them.
+          It was probably moved to a later day, or it's a This week task: look on Week. Dropped tasks are in History,
+          where you can restore them.
         </dd>
         <dt>Google Calendar hasn't updated</dt>
         <dd>
