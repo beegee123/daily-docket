@@ -17,7 +17,7 @@ import { SuitcaseIcon } from '../components/Icons.jsx'
  * selected (here). Every list below is worked out from those each time
  * the screen draws, so the lists can never disagree with the tasks.
  */
-export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], onToggle, closure, onReopen, userEmail, onSignOut }) {
+export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], onToggle, onStep, closure, onReopen, userEmail, onSignOut }) {
   const [areaFilter, setAreaFilter] = useState(null) // null = All
   const navigate = useNavigate()
 
@@ -51,7 +51,7 @@ export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], 
   const thisWeek = startOfWeekISO(todayISO)
   const weekJobs = weekGroups(tasksForWeek(weekTasks, thisWeek, thisWeek), areas, { weekStart: thisWeek, areaFilter })
 
-  const rowProps = { areasById, todayISO, onToggle }
+  const rowProps = { areasById, todayISO, onToggle, onStep }
   const [reopening, setReopening] = useState(false)
   const filterName = areaFilter ? areasById[areaFilter].name : null
 

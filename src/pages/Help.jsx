@@ -41,6 +41,10 @@ export const HELP_SECTIONS = [
           <li>
             <strong>Mine</strong> appears once you share an area. It hides tasks assigned to someone else.
           </li>
+          <li>
+            A task with steps (a checklist in its notes, or a started routine) shows a count like "2/6". Tap it to tick
+            steps in place.
+          </li>
           <li>A yellow banner shows trips and events happening today.</li>
           <li>History, at the bottom, lists what you finished in the last 30 days and what you dropped.</li>
         </ul>
@@ -174,6 +178,29 @@ export const HELP_SECTIONS = [
           <li>It only moves your own tasks.</li>
         </ul>
       </>
+    ),
+  },
+  {
+    id: 'routines',
+    title: 'Routines',
+    body: (
+      <ul>
+        <li>
+          A routine is a checklist you run again and again, like Guest turnover or Monday work setup. Find them on the
+          Routines tab; tap a card to see its steps.
+        </li>
+        <li>
+          <strong>New</strong> makes one: a name, an area and the steps. Enter adds the next step, ↑ ↓ reorder them,
+          and ✕ removes one. <strong>Paste a list</strong> turns lines from your notes app into steps.
+        </li>
+        <li>Everyone who shares the routine's area can see, use and edit it.</li>
+        <li>
+          <strong>Start it on</strong> Today, Tomorrow, This week or another day adds one task named after the
+          routine, with its steps as a checklist. On Today it shows "0/6"; tap that to tick steps without opening the
+          task. Ticking the last one asks whether to mark the task done.
+        </li>
+        <li>Editing a routine later doesn't change tasks already started from it.</li>
+      </ul>
     ),
   },
   {

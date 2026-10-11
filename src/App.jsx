@@ -12,6 +12,8 @@ import Week from './pages/Week.jsx'
 import Day from './pages/Day.jsx'
 import ShiftPlan from './pages/ShiftPlan.jsx'
 import Help from './pages/Help.jsx'
+import Routines from './pages/Routines.jsx'
+import RoutineForm from './pages/RoutineForm.jsx'
 import SignIn from './pages/SignIn.jsx'
 import { useDocket } from './hooks/useDocket.js'
 import { useSession } from './hooks/useSession.js'
@@ -36,7 +38,7 @@ export default function App() {
 }
 
 function Docket({ user }) {
-  const { areas, tasks, people, areaPeople, todayEvents, weekTasks, closure, status, error, notice, toggle, retry, refresh, announce, dismissNotice } =
+  const { areas, tasks, people, areaPeople, todayEvents, weekTasks, closure, status, error, notice, toggle, tickStep, retry, refresh, announce, dismissNotice } =
     useDocket(user.id)
 
   if (status === 'loading') return <StatusScreen title="Loading your docket…" />
@@ -84,6 +86,7 @@ function Docket({ user }) {
               areas={areas}
               tasks={tasks}
               onToggle={toggle}
+              onStep={tickStep}
               todayEvents={todayEvents}
               weekTasks={weekTasks}
               closure={closure}
@@ -123,6 +126,9 @@ function Docket({ user }) {
           }
         />
         <Route path="/help" element={<Help />} />
+        <Route path="/routines" element={<Routines areas={areas} onStarted={refresh} announce={announce} />} />
+        <Route path="/routines/new" element={<RoutineForm areas={areas} announce={announce} />} />
+        <Route path="/routines/:id" element={<RoutineForm areas={areas} announce={announce} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 

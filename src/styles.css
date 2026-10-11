@@ -1014,3 +1014,44 @@ a.event-row:hover { color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 /* Paste a list */
 .paste-input { min-height: 140px; resize: vertical; font: 400 15px var(--font-body); }
 .paste-preview { margin: 0; padding-left: 18px; font-size: 13px; color: var(--muted); }
+
+/* ---------- Routines (step 22) ---------- */
+
+.routine-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.routine-card { background: var(--card); border-radius: var(--radius-card); }
+.routine-toggle {
+  display: flex; align-items: center; gap: 10px;
+  width: 100%; min-height: 64px; padding: 10px 14px 10px 16px;
+  border: 0; background: transparent; color: inherit; font: inherit; text-align: left; cursor: pointer;
+}
+.routine-text { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.routine-name { font: 600 17px var(--font-display); }
+.routine-meta { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 500; color: var(--muted); }
+.routine-card.is-open .job-chevron { transform: rotate(90deg); }
+.routine-body { padding: 0 16px 14px; }
+.routine-steps { margin: 0 0 12px; padding-left: 22px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; line-height: 1.4; }
+.routine-steps li { padding-left: 4px; border-top: 1px solid var(--line-soft); padding-top: 6px; }
+.routine-steps li:first-child { border-top: 0; padding-top: 0; }
+.routine-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.routines-empty { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
+
+.step-editor { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.step-edit-row { display: flex; align-items: center; gap: 4px; }
+.step-num { width: 22px; flex-shrink: 0; text-align: right; font: 600 14px var(--font-display); color: var(--muted); }
+.step-input { flex: 1; min-width: 0; height: 44px; margin-left: 4px; }
+.step-edit-row .icon-btn.small:disabled { opacity: .35; }
+.paste-steps { display: flex; flex-direction: column; gap: 8px; }
+
+/* Steps on a task row (step 23) */
+.task-row { align-items: flex-start; }
+.task-row > .tick { margin-top: 0; }
+.task-body { padding-top: 10px; padding-bottom: 6px; }
+.row-steps-btn { margin-top: 6px; align-self: flex-start; }
+.row-steps { margin: 6px 0 2px; }
+.row-ask { margin-left: 0; }
+.steps-count { font-weight: 600; }
+.start-caps { display: block; margin-bottom: 6px; }
+.start-row .btn-secondary, .start-row .restore-btn { min-height: 44px; }
+.start-day { margin-top: 8px; max-width: 220px; }
+.routine-foot { margin-top: 12px; }
+.routine-foot .hint { margin-top: 0; }

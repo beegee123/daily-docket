@@ -1,6 +1,6 @@
 import { Link } from 'react-router'
 
-/** Today / Week / Routines. Routines arrives in Phase 3. */
+/** Today / Week / Routines. */
 export default function ViewSwitch({ current }) {
   return (
     <nav className="view-switch" aria-label="Views">
@@ -10,9 +10,13 @@ export default function ViewSwitch({ current }) {
       <Link to="/week" className={current === 'week' ? 'is-on' : ''} aria-current={current === 'week' ? 'page' : undefined}>
         Week
       </Link>
-      <span className="is-soon" aria-disabled="true" title="Coming in Phase 3">
+      <Link
+        to="/routines"
+        className={current === 'routines' ? 'is-on' : ''}
+        aria-current={current === 'routines' ? 'page' : undefined}
+      >
         Routines
-      </span>
+      </Link>
     </nav>
   )
 }

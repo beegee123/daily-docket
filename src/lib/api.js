@@ -558,3 +558,57 @@ export async function saveNotes(taskId, notes) {
   if (error) throw error
   if (!data?.length) throw new Error('That task could not be updated.')
 }
+
+// ---------- Routines (supabase/019_routines.sql) ----------
+
+function routineFromDb(row) {
+  return {
+    id: row.id,
+    areaId: row.area_id,
+    createdBy: row.created_by,
+    name: row.name,
+    steps: row.steps ?? [],
+    timesUsed: row.times_used ?? 0,
+  }
+}
+
+const ROUTINE_COLUMNS = 'id, area_id, created_by, name, steps, times_used'
+
+/** Every routine in areas you can see, A to Z. */
+export async function fetchRoutines() {
+  const { data, error } = await supabase.from('routines').select(ROUTINE_COLUMNS).order('name')
+  if (error) throw error
+  return data.map(routineFromDb)
+}
+
+export async function fetchRoutine(id) {
+  const { data, error } = await supabase.from('routines').select(ROUTINE_COLUMNS).eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? routineFromDb(data) : null
+}
+
+export async function saveRoutine({ id = null, areaId, name, steps }) {
+  const row = { area_id: areaId, name: name.trim(), steps }
+  const { data, error } = id
+    ? await supabase.from('routines').update(row).eq('id', id).select('id')
+    : await supabase.from('routines').insert(row).select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error('That routine could not be saved.')
+  return data[0].id
+}
+
+export async function deleteRoutine(id) {
+  const { data, error } = await supabase.from('routines').delete().eq('id', id).select('id')
+  if (error) throw error
+  if (!data?.length) throw new Error('That routine could not be deleted.')
+}
+
+/**
+ * Start a routine (supabase/020_start_routine.sql): one task named after
+ * it, with its steps as a checklist, on a day or in a week. Returns the task id.
+ */
+export async function startRoutine(routineId, { day = null, week = null }) {
+  const { data, error } = await supabase.rpc('start_routine', { p_routine: routineId, p_day: day, p_week: week })
+  if (error) throw error
+  return data
+}

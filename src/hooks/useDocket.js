@@ -10,11 +10,13 @@ import {
   fetchTodayTasks,
   fetchWeekTasks,
   saveDoneState,
+  saveNotes,
   seedStarterAreas,
   syncTimezone,
 } from '../lib/api.js'
 import { fromISODate, startOfLocalDayISO, startOfWeekISO, toLocalISODate } from '../lib/dates.js'
 import { toggleDone } from '../lib/tasks.js'
+import { toggleCheck } from '../lib/notes.js'
 
 /**
  * Loads the signed-in person's areas and today's tasks, keeps them in
@@ -150,6 +152,20 @@ export function useDocket(userId) {
     }
   }
 
+  // Tick one step (a checklist line in the task's notes) straight from Today
+  async function tickStep(taskId, line) {
+    const before = tasks.find((t) => t.id === taskId)
+    if (!before) return
+    const notes = toggleCheck(before.notes ?? '', line)
+    setTasks((prev) => prev.map((t) => (t.id === taskId ? { ...t, notes } : t)))
+    try {
+      await saveNotes(taskId, notes)
+    } catch {
+      setTasks((prev) => prev.map((t) => (t.id === taskId ? before : t)))
+      announce("Couldn't save that step. Check your connection and try again.")
+    }
+  }
+
   // Hide the notice after a few seconds (longer if it has an Undo button)
   useEffect(() => {
     if (!notice) return
@@ -169,6 +185,7 @@ export function useDocket(userId) {
     error,
     notice,
     toggle,
+    tickStep,
     retry: () => load(),
     refresh: () => load({ quiet: true }),
     announce,
