@@ -38,8 +38,26 @@ export default function App() {
 }
 
 function Docket({ user }) {
-  const { areas, tasks, people, areaPeople, todayEvents, weekTasks, closure, status, error, notice, toggle, tickStep, retry, refresh, announce, dismissNotice } =
-    useDocket(user.id)
+  const {
+    areas,
+    tasks,
+    people,
+    areaPeople,
+    todayEvents,
+    weekTasks,
+    attended,
+    closure,
+    status,
+    error,
+    notice,
+    toggle,
+    tickStep,
+    toggleAttended,
+    retry,
+    refresh,
+    announce,
+    dismissNotice,
+  } = useDocket(user.id)
 
   if (status === 'loading') return <StatusScreen title="Loading your docket…" />
 
@@ -88,6 +106,8 @@ function Docket({ user }) {
               onToggle={toggle}
               onStep={tickStep}
               todayEvents={todayEvents}
+              attended={attended}
+              onAttend={toggleAttended}
               weekTasks={weekTasks}
               closure={closure}
               onReopen={handleReopen}
@@ -98,21 +118,33 @@ function Docket({ user }) {
         />
         <Route path="/task/new" element={<TaskForm areas={areas} onSaved={refresh} announce={announce} />} />
         <Route path="/task/:id" element={<TaskForm areas={areas} onSaved={refresh} announce={announce} />} />
-        <Route path="/close" element={<CloseDay areas={areas} tasks={tasks} userId={user.id} onClosed={handleClosed} />} />
+        <Route
+          path="/close"
+          element={<CloseDay areas={areas} tasks={tasks} userId={user.id} onClosed={handleClosed} />}
+        />
         <Route
           path="/history"
           element={<History areas={areas} userId={user.id} onChanged={refresh} announce={announce} />}
         />
-        <Route path="/week" element={<Week areas={areas} changeSignal={tasks} onChanged={refresh} announce={announce} />} />
+        <Route
+          path="/week"
+          element={<Week areas={areas} changeSignal={tasks} onChanged={refresh} announce={announce} />}
+        />
         <Route path="/events" element={<Events areas={areas} changeSignal={tasks} />} />
         <Route path="/events/new" element={<EventForm areas={areas} onSaved={refresh} announce={announce} />} />
         <Route path="/events/:id" element={<EventForm areas={areas} onSaved={refresh} announce={announce} />} />
-        <Route path="/shift/:areaId" element={<ShiftPlan areas={areas} userId={user.id} onChanged={refresh} announce={announce} />} />
+        <Route
+          path="/shift/:areaId"
+          element={<ShiftPlan areas={areas} userId={user.id} onChanged={refresh} announce={announce} />}
+        />
         <Route
           path="/day/:date"
           element={<Day areas={areas} userId={user.id} changeSignal={tasks} onChanged={refresh} announce={announce} />}
         />
-        <Route path="/settings/areas" element={<Areas areas={areas} userId={user.id} people={people} onChanged={refresh} announce={announce} />} />
+        <Route
+          path="/settings/areas"
+          element={<Areas areas={areas} userId={user.id} people={people} onChanged={refresh} announce={announce} />}
+        />
         <Route
           path="/settings"
           element={

@@ -11,8 +11,13 @@
 //     sends x-cron-secret plus { assigned_task, assigned_by } and the
 //     assignee gets "Bee assigned you: Take out bins".
 //
+//  4. The reminders schedule (every 5 min, see 021_reminders.sql). Same
+//     secret, body { job: 'reminders' }. Sends "TDX standup in 10 min"
+//     and task reminders that are due.
+//
 // If a digest reaches none of a person's devices, release_digest
 // (017_digest_retry.sql) clears "sent today" so the next run retries.
+// Reminders do the same with release_reminder.
 //
 // Secrets it needs (Edge Functions -> Secrets):
 //   VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT  (already there for send-test-push)
@@ -137,6 +142,89 @@ async function sendAssignment(admin: Admin, taskId: string, assignedBy: string |
   return await sendToUser(admin, task.assigned_to, payload)
 }
 
+// '14:00:00' -> '2:00 pm'
+function formatTime(hhmm: string) {
+  const [h, m] = hhmm.split(':').map(Number)
+  return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${h < 12 ? 'am' : 'pm'}`
+}
+
+// '9:30 – 9:45 am', '11:00 am – 1:00 pm' or just '2:00 pm'
+function timeRange(start: string, end: string | null) {
+  const s = formatTime(start)
+  if (!end) return s
+  const e = formatTime(end)
+  return `${s.slice(-2) === e.slice(-2) ? s.slice(0, -3) : s} – ${e}`
+}
+
+type DueReminder = {
+  kind: 'event' | 'task'
+  item_id: string
+  user_id: string
+  fire_at: string
+  starts_at: string | null
+  title: string
+  area_name: string | null
+  start_time: string | null
+  end_time: string | null
+}
+
+const clip = (text: string, n: number) => (text.length > n ? text.slice(0, n - 1) + '…' : text)
+
+/** The notification for one reminder. */
+function reminderPayload(r: DueReminder, now = new Date()) {
+  if (r.kind === 'event') {
+    // Worked out from the real start, so a run that's a few minutes late still says the right thing
+    const mins = Math.max(1, Math.round((new Date(r.starts_at!).getTime() - now.getTime()) / 60000))
+    const when = mins >= 60 ? 'in 1 hour' : `in ${mins} min`
+    const range = r.start_time ? timeRange(r.start_time, r.end_time) : ''
+    return JSON.stringify({
+      title: `${clip(r.title, 60)} ${when}`,
+      body: [range, r.area_name].filter(Boolean).join(' · '),
+      url: '/',
+      tag: `docket-meeting-${r.item_id}`,
+    })
+  }
+  return JSON.stringify({
+    title: clip(r.title, 80),
+    body: r.area_name ? `Reminder · ${r.area_name}` : 'Reminder',
+    url: `/task/${r.item_id}`,
+    tag: `docket-task-${r.item_id}`,
+  })
+}
+
+/** Send every reminder that's due. Ones that reach no device are released to retry. */
+async function sendReminders(admin: Admin) {
+  const { data: due, error } = await admin.rpc('claim_reminders')
+  if (error) throw error
+
+  const totals = { reminders: due?.length ?? 0, sent: 0, removed: 0, failed: 0, retrying: 0 }
+  for (const r of (due ?? []) as DueReminder[]) {
+    let delivered = false
+    try {
+      const res = await sendToUser(admin, r.user_id, reminderPayload(r))
+      totals.sent += res.sent
+      totals.removed += res.removed
+      totals.failed += res.failed
+      delivered = res.sent > 0
+    } catch (e) {
+      console.error('Reminder failed', (e as Error).message)
+      totals.failed++
+    }
+    if (!delivered) {
+      const { error: releaseError } = await admin.rpc('release_reminder', {
+        p_kind: r.kind,
+        p_item: r.item_id,
+        p_user: r.user_id,
+        p_fire_at: r.fire_at,
+      })
+      if (releaseError) console.error('release_reminder failed', releaseError.message)
+      else totals.retrying++
+    }
+  }
+  if (totals.reminders) console.info('Reminder run', JSON.stringify(totals))
+  return totals
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { status: 200, headers: cors })
 
@@ -159,6 +247,17 @@ Deno.serve(async (req) => {
 
     // From the database: a task was just assigned to someone
     const body = await req.json().catch(() => ({}))
+
+    // The every-5-minutes reminders run
+    if (body?.job === 'reminders') {
+      try {
+        return json(await sendReminders(admin))
+      } catch (e) {
+        console.error('Reminders run failed', (e as Error).message)
+        return json({ error: (e as Error).message }, 500)
+      }
+    }
+
     if (body?.assigned_task) {
       try {
         return json(await sendAssignment(admin, String(body.assigned_task), body.assigned_by ?? null))

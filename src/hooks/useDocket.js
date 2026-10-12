@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase.js'
 import {
   acceptMyInvites,
   fetchAreas,
+  fetchAttended,
   fetchEventsBetween,
   fetchMembers,
   fetchPeople,
@@ -12,11 +13,13 @@ import {
   saveDoneState,
   saveNotes,
   seedStarterAreas,
+  setAttended,
   syncTimezone,
 } from '../lib/api.js'
 import { fromISODate, startOfLocalDayISO, startOfWeekISO, toLocalISODate } from '../lib/dates.js'
 import { toggleDone } from '../lib/tasks.js'
 import { toggleCheck } from '../lib/notes.js'
+import { occurrenceKey } from '../lib/repeat.js'
 
 /**
  * Loads the signed-in person's areas and today's tasks, keeps them in
@@ -29,6 +32,7 @@ export function useDocket(userId) {
   const [areaPeople, setAreaPeople] = useState({}) // { areaId: [userId] } who's in each area
   const [todayEvents, setTodayEvents] = useState([]) // trips and events happening today
   const [weekTasks, setWeekTasks] = useState([]) // this-week tasks, for the summary on Today
+  const [attended, setAttendedIds] = useState(() => new Set()) // meetings I've ticked today
   const [closure, setClosure] = useState(null) // today's close, if not reopened
   const [status, setStatus] = useState('loading') // 'loading' | 'ready' | 'error'
   const [error, setError] = useState(null)
@@ -38,45 +42,53 @@ export function useDocket(userId) {
   const announce = useCallback((message, action = null) => setNotice({ message, action }), [])
 
   // Fetch areas and tasks. `quiet` refreshes without the loading screen.
-  const load = useCallback(async ({ quiet = false } = {}) => {
-    if (!quiet) setStatus('loading')
-    try {
-      const now = new Date()
-      const thisWeek = startOfWeekISO(toLocalISODate(now))
-      const [nextAreas, nextTasks, nextClosure, nextPeople, members, nextEvents, nextWeek] = await Promise.all([
-        fetchAreas(),
-        fetchTodayTasks(toLocalISODate(now), startOfLocalDayISO(now)),
-        fetchOpenClosure(toLocalISODate(now)),
-        fetchPeople().catch(() => ({})), // tags are a nicety
-        fetchMembers().catch(() => []),
-        fetchEventsBetween(toLocalISODate(now), toLocalISODate(now)).catch(() => []),
-        // Before SQL 018 is run there's no week_of column; the summary just stays empty
-        fetchWeekTasks(thisWeek, fromISODate(thisWeek).toISOString()).catch(() => []),
-      ])
-      // Who's in each area: its owner plus everyone who has joined
-      const byArea = {}
-      for (const a of nextAreas) byArea[a.id] = [a.ownerId]
-      for (const m of members) {
-        if (m.joined && byArea[m.areaId] && !byArea[m.areaId].includes(m.userId)) byArea[m.areaId].push(m.userId)
+  const load = useCallback(
+    async ({ quiet = false } = {}) => {
+      if (!quiet) setStatus('loading')
+      try {
+        const now = new Date()
+        const thisWeek = startOfWeekISO(toLocalISODate(now))
+        const [nextAreas, nextTasks, nextClosure, nextPeople, members, nextEvents, nextWeek] = await Promise.all([
+          fetchAreas(),
+          fetchTodayTasks(toLocalISODate(now), startOfLocalDayISO(now)),
+          fetchOpenClosure(toLocalISODate(now)),
+          fetchPeople().catch(() => ({})), // tags are a nicety
+          fetchMembers().catch(() => []),
+          fetchEventsBetween(toLocalISODate(now), toLocalISODate(now)).catch(() => []),
+          // Before SQL 018 is run there's no week_of column; the summary just stays empty
+          fetchWeekTasks(thisWeek, fromISODate(thisWeek).toISOString()).catch(() => []),
+        ])
+        // Who's in each area: its owner plus everyone who has joined
+        const byArea = {}
+        for (const a of nextAreas) byArea[a.id] = [a.ownerId]
+        for (const m of members) {
+          if (m.joined && byArea[m.areaId] && !byArea[m.areaId].includes(m.userId)) byArea[m.areaId].push(m.userId)
+        }
+        // Before SQL 021 is run there's no attendance table; nothing shows ticked
+        const nextAttended = await fetchAttended(nextEvents.map((ev) => ev.id)).catch(() => new Set())
+        setAreaPeople(byArea)
+        setTodayEvents(nextEvents)
+        setAttendedIds(nextAttended)
+        setWeekTasks(nextWeek)
+        // Your own areas first (in your order), then areas shared with you
+        nextAreas.sort((a, b) =>
+          (a.ownerId === userId) === (b.ownerId === userId) ? 0 : a.ownerId === userId ? -1 : 1,
+        )
+        setAreas(nextAreas)
+        setPeople(nextPeople)
+        setTasks(nextTasks)
+        setClosure(nextClosure)
+        setStatus('ready')
+        setError(null)
+      } catch (e) {
+        if (!quiet) {
+          setError(e.message)
+          setStatus('error')
+        }
       }
-      setAreaPeople(byArea)
-      setTodayEvents(nextEvents)
-      setWeekTasks(nextWeek)
-      // Your own areas first (in your order), then areas shared with you
-      nextAreas.sort((a, b) => (a.ownerId === userId) === (b.ownerId === userId) ? 0 : a.ownerId === userId ? -1 : 1)
-      setAreas(nextAreas)
-      setPeople(nextPeople)
-      setTasks(nextTasks)
-      setClosure(nextClosure)
-      setStatus('ready')
-      setError(null)
-    } catch (e) {
-      if (!quiet) {
-        setError(e.message)
-        setStatus('error')
-      }
-    }
-  }, [userId])
+    },
+    [userId],
+  )
 
   // First load: make sure starter areas exist, then fetch
   useEffect(() => {
@@ -121,6 +133,8 @@ export function useDocket(userId) {
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'areas' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'area_members' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'events' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'docket', table: 'event_attendance' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'docket', table: 'event_skips' }, scheduleReload)
       .subscribe()
 
     // Coming back to the app (or past midnight) also refreshes
@@ -166,6 +180,26 @@ export function useDocket(userId) {
     }
   }
 
+  // Tick one date of a meeting as attended (or untick it). Only marks it for you.
+  async function toggleAttended(ev) {
+    const key = occurrenceKey(ev)
+    const was = attended.has(key)
+    const flip = (on) =>
+      setAttendedIds((prev) => {
+        const next = new Set(prev)
+        if (on) next.add(key)
+        else next.delete(key)
+        return next
+      })
+    flip(!was)
+    try {
+      await setAttended(ev.id, ev.occurrence ?? ev.startDate, !was)
+    } catch {
+      flip(was)
+      announce("Couldn't save that. Check your connection and try again.")
+    }
+  }
+
   // Hide the notice after a few seconds (longer if it has an Undo button)
   useEffect(() => {
     if (!notice) return
@@ -180,12 +214,14 @@ export function useDocket(userId) {
     areaPeople,
     todayEvents,
     weekTasks,
+    attended,
     closure,
     status,
     error,
     notice,
     toggle,
     tickStep,
+    toggleAttended,
     retry: () => load(),
     refresh: () => load({ quiet: true }),
     announce,

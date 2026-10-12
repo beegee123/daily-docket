@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { PlusIcon, SuitcaseIcon } from '../components/Icons.jsx'
 import { fetchUpcomingEvents } from '../lib/api.js'
-import { toLocalISODate } from '../lib/dates.js'
-import { eventDates } from '../lib/events.js'
+import { formatDayMonth, toLocalISODate } from '../lib/dates.js'
+import { eventDates, timeRange } from '../lib/events.js'
+import { repeatSummary } from '../lib/repeat.js'
 import { shortName, usePeople } from '../lib/people.js'
 
 /** Trips and events that aren't over yet, soonest first. */
@@ -27,7 +28,9 @@ export default function Events({ areas, changeSignal }) {
   return (
     <div className="screen events-screen">
       <header className="close-header">
-        <Link to="/week" className="text-btn back-link">Back to week</Link>
+        <Link to="/week" className="text-btn back-link">
+          Back to week
+        </Link>
         <span className="eyebrow">DAILY DOCKET</span>
         <h1>Trips &amp; events</h1>
         <p className="lead">Shown to everyone in the area. They never carry over.</p>
@@ -46,7 +49,7 @@ export default function Events({ areas, changeSignal }) {
           <ul className="task-list">
             {events.map((ev) => {
               const area = areasById[ev.areaId]
-              const now = ev.startDate <= todayISO
+              const now = !ev.repeat && ev.startDate <= todayISO
               return (
                 <li key={ev.id}>
                   <Link to={`/events/${ev.id}`} className={`event-row${now ? ' is-now' : ''}`}>
@@ -56,7 +59,17 @@ export default function Events({ areas, changeSignal }) {
                     <span className="event-text">
                       <span className="settings-name">{ev.title}</span>
                       <span className="task-meta">
-                        <span>{eventDates(ev)}</span>
+                        {ev.repeat ? (
+                          <>
+                            <span>
+                              ↻ {repeatSummary(ev)}
+                              {ev.startTime ? ` · ${timeRange(ev)}` : ''}
+                            </span>
+                            <span>Next {formatDayMonth(ev.nextDate)}</span>
+                          </>
+                        ) : (
+                          <span>{eventDates(ev)}</span>
+                        )}
                         {ev.personId && (
                           <span className="who-tag">
                             {ev.personId === meId ? 'You' : shortName(people[ev.personId])} away

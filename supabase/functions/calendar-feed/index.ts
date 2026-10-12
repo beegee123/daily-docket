@@ -30,6 +30,11 @@ export type FeedEvent = {
   area_name: string
   person_id: string | null // who's away; null = a plain event
   person_email: string | null
+  // Repeating (022_repeating_events.sql); missing on older databases
+  repeat?: 'weekdays' | 'weekly' | 'biweekly' | 'monthly' | null
+  repeat_days?: number[] | null // ISO weekdays, 1 = Mon ... 7 = Sun
+  repeat_until?: string | null
+  skip_dates?: string[] | null
 }
 
 const CRLF = '\r\n'
@@ -65,7 +70,10 @@ export function nextDay(iso: string): string {
 
 /** A timestamp in .ics form: '20261002T181500Z' (always UTC). */
 export function icsStamp(isoTimestamp: string): string {
-  return new Date(isoTimestamp).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, '')
+  return new Date(isoTimestamp)
+    .toISOString()
+    .replace(/[-:]/g, '')
+    .replace(/\.\d{3}/, '')
 }
 
 /**
@@ -116,6 +124,88 @@ export function timedRange(event: FeedEvent): { start: string; end: string } {
   return { start, end: icsStamp(new Date(oneHourLater).toISOString()) }
 }
 
+// ---------------------------------------------------------------
+// Repeating events: one VEVENT with an RRULE, so calendars draw the
+// series themselves. Same rules as src/lib/repeat.js.
+// ---------------------------------------------------------------
+
+const BYDAY = ['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']
+
+const isoWeekday = (iso: string) => new Date(`${iso}T00:00:00Z`).getUTCDay() || 7
+
+function mondayOf(iso: string): string {
+  const d = new Date(`${iso}T00:00:00Z`)
+  d.setUTCDate(d.getUTCDate() - (isoWeekday(iso) - 1))
+  return d.toISOString().slice(0, 10)
+}
+
+/** Does the pattern fall on this day? */
+export function patternOn(event: FeedEvent, iso: string): boolean {
+  if (iso < event.start_date) return false
+  if (event.repeat_until && iso > event.repeat_until) return false
+  const dow = isoWeekday(iso)
+  const days = event.repeat_days ?? []
+  switch (event.repeat) {
+    case 'weekdays':
+      return dow <= 5
+    case 'weekly':
+      return days.includes(dow)
+    case 'biweekly': {
+      const weeks = Math.round((Date.parse(mondayOf(iso)) - Date.parse(mondayOf(event.start_date))) / 604_800_000)
+      return days.includes(dow) && weeks % 2 === 0
+    }
+    case 'monthly':
+      return Number(iso.slice(8)) === Number(event.start_date.slice(8))
+    default:
+      return iso === event.start_date
+  }
+}
+
+/**
+ * A series' first real date. A calendar counts DTSTART as a date even if
+ * the pattern doesn't fall on it, so DTSTART must be the first one.
+ */
+export function firstDate(event: FeedEvent): string | null {
+  let day = event.start_date
+  for (let i = 0; i < 400; i++, day = nextDay(day)) {
+    if (event.repeat_until && day > event.repeat_until) return null
+    if (patternOn(event, day)) return day
+  }
+  return null
+}
+
+/** 'FREQ=WEEKLY;BYDAY=MO,TH;UNTIL=...' for a series. */
+export function rrule(event: FeedEvent, timed: boolean): string {
+  const days = [...(event.repeat_days ?? [])]
+    .sort()
+    .map((d) => BYDAY[d - 1])
+    .join(',')
+  const parts = {
+    weekdays: ['FREQ=WEEKLY', 'BYDAY=MO,TU,WE,TH,FR'],
+    weekly: ['FREQ=WEEKLY', `BYDAY=${days}`],
+    biweekly: ['FREQ=WEEKLY', 'INTERVAL=2', `BYDAY=${days}`, 'WKST=MO'],
+    monthly: ['FREQ=MONTHLY', `BYMONTHDAY=${Number(event.start_date.slice(8))}`],
+  }[event.repeat!]
+  if (event.repeat_until) {
+    // Timed: the end of that day where it was entered, in UTC. All day: just the date.
+    parts.push(
+      timed
+        ? `UNTIL=${zonedToUtc(event.repeat_until, '23:59', event.time_zone)}`
+        : `UNTIL=${icsDate(event.repeat_until)}`,
+    )
+  }
+  return `RRULE:${parts.join(';')}`
+}
+
+/** Skipped dates ("Not this time"), in the same form as DTSTART. */
+export function exdates(event: FeedEvent, timed: boolean): string[] {
+  return (event.skip_dates ?? [])
+    .filter((d) => patternOn(event, d))
+    .map((d) =>
+      timed ? `EXDATE:${zonedToUtc(d, event.start_time!, event.time_zone)}` : `EXDATE;VALUE=DATE:${icsDate(d)}`,
+    )
+}
+
 /** Text values must escape backslashes, semicolons, commas and line breaks. */
 export function escapeText(text: string): string {
   return text
@@ -151,6 +241,13 @@ export function foldLine(line: string): string {
 
 /** One event as a VEVENT block. */
 export function eventLines(event: FeedEvent, viewerId: string): string[] {
+  // A series starts on its first real date; one with no dates left is left out
+  const repeats = Boolean(event.repeat) && !event.person_id
+  if (repeats) {
+    const first = firstDate(event)
+    if (!first) return []
+    event = { ...event, start_date: first, end_date: first }
+  }
   const description = [event.notes?.trim(), `Area: ${event.area_name}`].filter(Boolean).join('\n\n')
   const stamp = icsStamp(event.updated_at)
   // Trips are always whole days, even if a time slipped in
@@ -164,6 +261,7 @@ export function eventLines(event: FeedEvent, viewerId: string): string[] {
     `DTSTAMP:${stamp}`,
     `LAST-MODIFIED:${stamp}`,
     ...when,
+    ...(repeats ? [rrule(event, timed), ...exdates(event, timed)] : []),
     `SUMMARY:${escapeText(summaryFor(event, viewerId))}`,
     `DESCRIPTION:${escapeText(description)}`,
     // A timed event shows as busy; trips and all-day events show as free,

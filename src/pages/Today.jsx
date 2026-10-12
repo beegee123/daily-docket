@@ -10,6 +10,9 @@ import { inArea, isCarried, isDoneOn, isForMe, isOpen } from '../lib/tasks.js'
 import { isShared, usePeople } from '../lib/people.js'
 import { eventBanner } from '../lib/events.js'
 import { SuitcaseIcon } from '../components/Icons.jsx'
+import Schedule from '../components/Schedule.jsx'
+import { bannerEvents, meetingsFor } from '../lib/schedule.js'
+import { eventLink } from '../lib/repeat.js'
 
 /**
  * The Today screen.
@@ -17,7 +20,20 @@ import { SuitcaseIcon } from '../components/Icons.jsx'
  * selected (here). Every list below is worked out from those each time
  * the screen draws, so the lists can never disagree with the tasks.
  */
-export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], onToggle, onStep, closure, onReopen, userEmail, onSignOut }) {
+export default function Today({
+  areas,
+  tasks,
+  todayEvents = [],
+  weekTasks = [],
+  attended = new Set(),
+  onAttend,
+  onToggle,
+  onStep,
+  closure,
+  onReopen,
+  userEmail,
+  onSignOut,
+}) {
   const [areaFilter, setAreaFilter] = useState(null) // null = All
   const navigate = useNavigate()
 
@@ -51,6 +67,10 @@ export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], 
   const thisWeek = startOfWeekISO(todayISO)
   const weekJobs = weekGroups(tasksForWeek(weekTasks, thisWeek, thisWeek), areas, { weekStart: thisWeek, areaFilter })
 
+  // Meetings (timed, starting today) go on the Schedule; the rest stay banners
+  const meetings = meetingsFor(todayEvents, todayISO).filter((ev) => !areaFilter || ev.areaId === areaFilter)
+  const banners = bannerEvents(todayEvents, todayISO)
+
   const rowProps = { areasById, todayISO, onToggle, onStep }
   const [reopening, setReopening] = useState(false)
   const filterName = areaFilter ? areasById[areaFilter].name : null
@@ -69,7 +89,9 @@ export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], 
           <Link to="/settings" className="icon-btn" aria-label="Settings">
             <SlidersIcon />
           </Link>
-          <Link to="/close" className="btn-dark as-link">Close day</Link>
+          <Link to="/close" className="btn-dark as-link">
+            Close day
+          </Link>
         </div>
       </header>
 
@@ -98,11 +120,11 @@ export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], 
         </Link>
       )}
 
-      {todayEvents.length > 0 && (
+      {banners.length > 0 && (
         <ul className="event-banners" aria-label="Today's trips and events">
-          {todayEvents.map((ev) => (
+          {banners.map((ev) => (
             <li key={ev.id}>
-              <Link to={`/events/${ev.id}`} className="event-banner">
+              <Link to={eventLink(ev)} className="event-banner">
                 <SuitcaseIcon size={18} />
                 <span className="event-banner-text">{eventBanner(ev, todayISO, meId, people)}</span>
                 {areasById[ev.areaId] && <span className="event-banner-area">{areasById[ev.areaId].name}</span>}
@@ -134,13 +156,19 @@ export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], 
       )}
 
       <main className="lists">
+        {meetings.length > 0 && (
+          <Schedule meetings={meetings} areasById={areasById} attended={attended} onAttend={onAttend} />
+        )}
+
         {carried.length > 0 && (
           <section>
             <h2 className="section-title">
               Carried over <span className="count">{carried.length}</span>
             </h2>
             <ul className="task-list">
-              {carried.map((t) => <TaskRow key={t.id} task={t} {...rowProps} />)}
+              {carried.map((t) => (
+                <TaskRow key={t.id} task={t} {...rowProps} />
+              ))}
             </ul>
           </section>
         )}
@@ -151,12 +179,12 @@ export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], 
           </h2>
           {todayOnly.length > 0 ? (
             <ul className="task-list">
-              {todayOnly.map((t) => <TaskRow key={t.id} task={t} {...rowProps} />)}
+              {todayOnly.map((t) => (
+                <TaskRow key={t.id} task={t} {...rowProps} />
+              ))}
             </ul>
           ) : (
-            <p className="empty">
-              {filterName ? `Nothing new in ${filterName} today.` : 'Nothing new for today.'}
-            </p>
+            <p className="empty">{filterName ? `Nothing new in ${filterName} today.` : 'Nothing new for today.'}</p>
           )}
         </section>
 
@@ -166,13 +194,17 @@ export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], 
               Done today <span className="count">{doneToday.length}</span>
             </h2>
             <ul className="task-list">
-              {doneToday.map((t) => <TaskRow key={t.id} task={t} {...rowProps} />)}
+              {doneToday.map((t) => (
+                <TaskRow key={t.id} task={t} {...rowProps} />
+              ))}
             </ul>
           </section>
         )}
 
         <footer className="today-footer">
-          <Link to="/history" className="history-link">History: done and dropped tasks</Link>
+          <Link to="/history" className="history-link">
+            History: done and dropped tasks
+          </Link>
           <p className="signed-in">
             Signed in as {userEmail} ·{' '}
             <button type="button" className="link-btn" onClick={onSignOut}>
@@ -192,7 +224,9 @@ export default function Today({ areas, tasks, todayEvents = [], weekTasks = [], 
           navigate(text ? `/task/new?title=${encodeURIComponent(text)}` : '/task/new')
         }}
       >
-        <label className="visually-hidden" htmlFor="capture">Add a task</label>
+        <label className="visually-hidden" htmlFor="capture">
+          Add a task
+        </label>
         <input id="capture" placeholder="Add a task… “call bank, Home, Fri”" autoComplete="off" />
         <button type="button" className="capture-icon" aria-label="Speak a task">
           <MicIcon />

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router'
 import { fetchCalendarToken, fetchSettings, resetCalendarToken, saveSettings } from '../lib/api.js'
 import { feedUrl, googleAddUrl } from '../lib/calendar.js'
+import { REMIND_CHOICES, remindLabel } from '../lib/schedule.js'
 import {
   currentSubscription,
   isInstalled,
@@ -41,7 +42,18 @@ export default function Settings({ areaCount, userId, userEmail, onSignOut, anno
 
   useEffect(() => {
     fetchSettings()
-      .then((s) => setDigest(s ?? { timezone: null, digestOn: true, digestTime: '07:30', digestDays: 'weekdays' }))
+      .then((s) =>
+        setDigest(
+          s ?? {
+            timezone: null,
+            digestOn: true,
+            digestTime: '07:30',
+            digestDays: 'weekdays',
+            meetingReminders: true,
+            remindDefault: 10,
+          },
+        ),
+      )
       .catch((e) => setDigestError(e.message))
   }, [])
 
@@ -295,6 +307,56 @@ export default function Settings({ areaCount, userId, userEmail, onSignOut, anno
         </section>
 
         <section>
+          <h2 className="section-title">Reminders</h2>
+          {digest && (
+            <div className="settings-card">
+              <div className="settings-row">
+                <div className="settings-text">
+                  <span className="settings-name" id="meeting-reminders-label">
+                    Meeting reminders
+                  </span>
+                  <span className="settings-sub">A notification before each meeting that has a time.</span>
+                </div>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={digest.meetingReminders}
+                  aria-labelledby="meeting-reminders-label"
+                  className={`switch${digest.meetingReminders ? ' is-on' : ''}`}
+                  onClick={() => updateDigest({ meetingReminders: !digest.meetingReminders })}
+                >
+                  <span />
+                </button>
+              </div>
+
+              <div className={`settings-row remind-default${digest.meetingReminders ? '' : ' is-muted'}`}>
+                <div className="settings-text">
+                  <span className="settings-name">Default</span>
+                  <span className="settings-sub">New meetings start with this. Change any one in its form.</span>
+                </div>
+                <div className="chip-row" role="group" aria-label="Default reminder">
+                  {REMIND_CHOICES.filter((m) => m !== null).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      className={`chip${digest.remindDefault === m ? ' is-on' : ''}`}
+                      aria-pressed={digest.remindDefault === m}
+                      disabled={!digest.meetingReminders}
+                      onClick={() => updateDigest({ remindDefault: m })}
+                    >
+                      {remindLabel(m)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          <p className="hint">
+            Task reminders are set on each task (Remind me at). Both need notifications on for this device, above.
+          </p>
+        </section>
+
+        <section>
           <h2 className="section-title">Calendar</h2>
           <div className="settings-card">
             <div className="settings-row">
@@ -363,7 +425,7 @@ export default function Settings({ areaCount, userId, userEmail, onSignOut, anno
             <Link to="/help" className="settings-row settings-link">
               <div className="settings-text">
                 <span className="settings-name">How Daily Docket works</span>
-                <span className="settings-sub">Carry-over, Close the day, sharing, trips, notifications</span>
+                <span className="settings-sub">Carry-over, Close the day, sharing, trips, reminders</span>
               </div>
               <span aria-hidden="true" className="chevron">›</span>
             </Link>

@@ -41,6 +41,8 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 18. `018_week_tasks.sql` — this-week tasks (a week, no day), and Shift plan moving them by weeks. Run it before pushing the app code that goes with it.
 19. `019_routines.sql` — routines: saved checklists, shared like their area
 20. `020_start_routine.sql` — start a routine: one task with the routine's steps as its checklist
+21. `021_reminders.sql` — Schedule on Today and reminders: meeting reminders, task "Remind me at", attended ticks, a 5-minute schedule (then redeploy send-digest)
+22. `022_repeating_events.sql` — repeating meetings: the pattern, skipped dates, attended ticks per date, reminders and the calendar feed for each date (then redeploy calendar-feed)
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 

@@ -1,4 +1,5 @@
 import { supabase } from './supabase.js'
+import { expandAll, nextOccurrence } from './repeat.js'
 
 // Every call to the database lives here, so screens never talk to
 // Supabase directly. Row-level security quietly limits every query to
@@ -27,6 +28,8 @@ function taskFromDb(row) {
     assignedTo: row.assigned_to,
     completedBy: row.completed_by,
     areaIds: (row.task_areas ?? []).map((link) => link.area_id),
+    // "Remind me at" on the task's day: '15:00' or null (supabase/021_reminders.sql)
+    remindTime: row.remind_time?.slice(0, 5) ?? null,
   }
 }
 
@@ -53,7 +56,7 @@ export async function fetchAreas() {
  * so "today" means today where you are, not today in UTC.
  */
 const TASK_COLUMNS =
-  'id, title, notes, status, scheduled_date, week_of, original_date, due_date, completed_at, dropped_at, created_by, assigned_to, completed_by, task_areas(area_id)'
+  'id, title, notes, status, scheduled_date, week_of, original_date, due_date, completed_at, dropped_at, created_by, assigned_to, completed_by, remind_time, task_areas(area_id)'
 
 export async function fetchTodayTasks(todayISO, startOfTodayISO) {
   const { data, error } = await supabase
@@ -99,7 +102,17 @@ export async function fetchTask(id) {
  * Create or update a task and its areas in one transaction
  * (see supabase/003_save_task.sql). Returns the task id.
  */
-export async function saveTask({ id = null, title, notes, scheduledDate, weekOf = null, dueDate, areaIds, assignedTo = null }) {
+export async function saveTask({
+  id = null,
+  title,
+  notes,
+  scheduledDate,
+  weekOf = null,
+  dueDate,
+  areaIds,
+  assignedTo = null,
+  remindTime,
+}) {
   const { data, error } = await supabase.rpc('save_task', {
     p_id: id,
     p_title: title,
@@ -112,6 +125,15 @@ export async function saveTask({ id = null, title, notes, scheduledDate, weekOf 
     p_assigned_to: assignedTo || null,
   })
   if (error) throw error
+  // The reminder time is saved on its own (save_task doesn't know about it).
+  // Left out = leave it as it is. A this-week task has no day, so no reminder.
+  if (remindTime !== undefined) {
+    const { error: remindError } = await supabase
+      .from('tasks')
+      .update({ remind_time: weekOf ? null : remindTime || null })
+      .eq('id', data)
+    if (remindError) throw remindError
+  }
   return data
 }
 
@@ -230,10 +252,7 @@ export async function fetchTasksBetween(fromISO, toISO) {
  * (asking for them in batches keeps each request's address short).
  */
 export async function fetchOpenInArea(areaId) {
-  const { data: links, error: linkError } = await supabase
-    .from('task_areas')
-    .select('task_id')
-    .eq('area_id', areaId)
+  const { data: links, error: linkError } = await supabase.from('task_areas').select('task_id').eq('area_id', areaId)
   if (linkError) throw linkError
 
   const ids = [...new Set(links.map((l) => l.task_id))]
@@ -276,11 +295,14 @@ export async function syncTimezone(userId) {
   if (error) throw error
 }
 
-/** { timezone, digestOn, digestTime: '07:30', digestDays: 'weekdays' | 'every' } */
+/**
+ * { timezone, digestOn, digestTime: '07:30', digestDays: 'weekdays' | 'every',
+ *   meetingReminders: true, remindDefault: 10 }
+ */
 export async function fetchSettings() {
   const { data, error } = await supabase
     .from('user_settings')
-    .select('timezone, digest_on, digest_time, digest_days')
+    .select('timezone, digest_on, digest_time, digest_days, meeting_reminders, remind_default')
     .maybeSingle()
   if (error) throw error
   if (!data) return null
@@ -289,15 +311,19 @@ export async function fetchSettings() {
     digestOn: data.digest_on,
     digestTime: data.digest_time.slice(0, 5), // '07:30:00' -> '07:30'
     digestDays: data.digest_days,
+    meetingReminders: data.meeting_reminders ?? true,
+    remindDefault: data.remind_default ?? 10,
   }
 }
 
-/** Save digest choices. Pass only what changed. */
-export async function saveSettings(userId, { digestOn, digestTime, digestDays }) {
+/** Save digest and reminder choices. Pass only what changed. */
+export async function saveSettings(userId, { digestOn, digestTime, digestDays, meetingReminders, remindDefault }) {
   const row = { user_id: userId, timezone: deviceTimezone() }
   if (digestOn !== undefined) row.digest_on = digestOn
   if (digestTime !== undefined) row.digest_time = digestTime
   if (digestDays !== undefined) row.digest_days = digestDays
+  if (meetingReminders !== undefined) row.meeting_reminders = meetingReminders
+  if (remindDefault !== undefined) row.remind_default = remindDefault
   const { error } = await supabase.from('user_settings').upsert(row, { onConflict: 'user_id' })
   if (error) throw error
 }
@@ -307,7 +333,7 @@ export async function saveSettings(userId, { digestOn, digestTime, digestDays })
 /** Turn database errors into something worth reading. */
 function areaError(error) {
   if (error?.code === '23505') return new Error('You already have an area with that name.')
-  if (error?.code === '23514') return new Error('That colour or name isn\'t allowed.')
+  if (error?.code === '23514') return new Error("That colour or name isn't allowed.")
   return error
 }
 
@@ -330,11 +356,7 @@ export async function createArea({ name, color, sortOrder }) {
 }
 
 export async function updateArea(id, { name, color }) {
-  const { data, error } = await supabase
-    .from('areas')
-    .update({ name: name.trim(), color })
-    .eq('id', id)
-    .select('id')
+  const { data, error } = await supabase.from('areas').update({ name: name.trim(), color }).eq('id', id).select('id')
   if (error) throw areaError(error)
   if (!data?.length) throw new Error('That area no longer exists.')
 }
@@ -421,37 +443,54 @@ function eventFromDb(row) {
     startTime: row.start_time?.slice(0, 5) ?? null,
     endTime: row.end_time?.slice(0, 5) ?? null,
     timeZone: row.time_zone,
+    remindMinutes: row.remind_minutes ?? null, // null = no reminder
+    // Repeating (supabase/022_repeating_events.sql); null = a one-off
+    repeat: row.repeat ?? null,
+    repeatDays: row.repeat_days ?? null,
+    repeatUntil: row.repeat_until ?? null,
+    skips: (row.event_skips ?? []).map((s) => s.on_date),
     notes: row.notes,
   }
 }
 
 const EVENT_COLUMNS =
-  'id, area_id, created_by, person_id, title, start_date, end_date, start_time, end_time, time_zone, notes'
+  'id, area_id, created_by, person_id, title, start_date, end_date, start_time, end_time, time_zone, remind_minutes, notes, repeat, repeat_days, repeat_until, event_skips(on_date)'
 
-/** Events touching any day from..to (inclusive). */
+/**
+ * Events touching any day from..to (inclusive). A repeating event comes
+ * back once for each date it falls on in the range (src/lib/repeat.js).
+ */
 export async function fetchEventsBetween(fromISO, toISO) {
   const { data, error } = await supabase
     .from('events')
     .select(EVENT_COLUMNS)
     .lte('start_date', toISO)
-    .gte('end_date', fromISO)
+    // A one-off that hasn't ended, or a series that hasn't stopped
+    .or(`end_date.gte.${fromISO},and(repeat.not.is.null,or(repeat_until.is.null,repeat_until.gte.${fromISO}))`)
     .order('start_date')
     .order('start_time', { nullsFirst: true })
   if (error) throw error
-  return data.map(eventFromDb)
+  return expandAll(data.map(eventFromDb), fromISO, toISO)
 }
 
-/** Everything not over yet, soonest first. */
+/**
+ * Everything not over yet, soonest first. A series is listed once, with
+ * `nextDate` (its next date from today) to sort and show by.
+ */
 export async function fetchUpcomingEvents(todayISO) {
   const { data, error } = await supabase
     .from('events')
     .select(EVENT_COLUMNS)
-    .gte('end_date', todayISO)
+    .or(`end_date.gte.${todayISO},and(repeat.not.is.null,or(repeat_until.is.null,repeat_until.gte.${todayISO}))`)
     .order('start_date')
     .order('start_time', { nullsFirst: true })
     .limit(100)
   if (error) throw error
-  return data.map(eventFromDb)
+  return data
+    .map(eventFromDb)
+    .map((ev) => ({ ...ev, nextDate: ev.repeat ? nextOccurrence(ev, todayISO) : ev.startDate }))
+    .filter((ev) => ev.nextDate) // a series with no dates left
+    .sort((a, b) => a.nextDate.localeCompare(b.nextDate) || (a.startTime ?? '').localeCompare(b.startTime ?? ''))
 }
 
 export async function fetchEvent(id) {
@@ -470,6 +509,10 @@ export async function saveEvent({
   startTime = null,
   endTime = null,
   timeZone = null,
+  remindMinutes = null,
+  repeat = null,
+  repeatDays = null,
+  repeatUntil = null,
   notes,
 }) {
   const row = {
@@ -482,17 +525,27 @@ export async function saveEvent({
     end_time: (startTime && endTime) || null,
     // Where the time was entered; kept when someone elsewhere edits it
     time_zone: timeZone || deviceTimezone(),
+    // Only meetings with a time can have a reminder
+    remind_minutes: startTime ? remindMinutes : null,
+    // Only a one-day event (not a trip) can repeat
+    repeat: !personId && startDate === endDate ? repeat || null : null,
+    repeat_days: repeat === 'weekly' || repeat === 'biweekly' ? repeatDays : null,
+    repeat_until: repeat ? repeatUntil || null : null,
     notes: notes?.trim() || null,
   }
   const { data, error } = id
     ? await supabase.from('events').update(row).eq('id', id).select('id')
     : await supabase.from('events').insert(row).select('id')
   if (error) {
-    if (error.message?.includes('events_times_in_order')) throw new Error('The end time has to be after the start time.')
-    if (error.code === '23514') throw new Error('The end date can\'t be before the start date.')
+    if (error.message?.includes('events_times_in_order'))
+      throw new Error('The end time has to be after the start time.')
+    if (error.message?.includes('events_repeat_allowed'))
+      throw new Error('Check the repeat: pick at least one day, and an until date after the start.')
+    if (error.code === '23514') throw new Error("The end date can't be before the start date.")
     throw error
   }
   if (!data?.length) throw new Error('That trip or event could not be saved.')
+  return data[0].id
 }
 
 export async function deleteEvent(id) {
@@ -611,4 +664,63 @@ export async function startRoutine(routineId, { day = null, week = null }) {
   const { data, error } = await supabase.rpc('start_routine', { p_routine: routineId, p_day: day, p_week: week })
   if (error) throw error
   return data
+}
+
+// ---------- Attended meetings (supabase/021_reminders.sql) ----------
+
+/**
+ * Which meeting dates you've ticked as attended, as a Set of
+ * 'eventId@YYYY-MM-DD' (occurrenceKey in src/lib/repeat.js).
+ */
+export async function fetchAttended(eventIds) {
+  if (!eventIds.length) return new Set()
+  const { data, error } = await supabase
+    .from('event_attendance')
+    .select('event_id, on_date')
+    .in('event_id', [...new Set(eventIds)])
+  if (error) throw error
+  return new Set(data.map((row) => `${row.event_id}@${row.on_date}`))
+}
+
+/** Tick or untick one date of a meeting as attended (for you only). */
+export async function setAttended(eventId, onDate, attended) {
+  const { error } = attended
+    ? await supabase
+        .from('event_attendance')
+        .upsert(
+          { event_id: eventId, on_date: onDate },
+          { onConflict: 'event_id,user_id,on_date', ignoreDuplicates: true },
+        )
+    : await supabase.from('event_attendance').delete().eq('event_id', eventId).eq('on_date', onDate)
+  if (error) throw error
+}
+
+// ---------- One date of a repeating event (supabase/022_repeating_events.sql) ----------
+
+/** "Not this time": leave one date out of a series. */
+export async function skipOccurrence(eventId, onDate) {
+  const { error } = await supabase
+    .from('event_skips')
+    .upsert({ event_id: eventId, on_date: onDate }, { onConflict: 'event_id,on_date', ignoreDuplicates: true })
+  if (error) throw error
+}
+
+/** "Just this one": that date becomes its own event. Returns the new event's id. */
+export async function detachOccurrence(eventId, onDate) {
+  const { data, error } = await supabase.rpc('detach_occurrence', { p_event: eventId, p_date: onDate })
+  if (error) throw error
+  return data
+}
+
+/** "This and later ones": a new series from that date. Returns its id (the same id from the first date). */
+export async function splitSeries(eventId, onDate) {
+  const { data, error } = await supabase.rpc('split_series', { p_event: eventId, p_date: onDate })
+  if (error) throw error
+  return data
+}
+
+/** "Delete this and later ones": the series stops the day before (or goes, from its first date). */
+export async function endSeries(eventId, onDate) {
+  const { error } = await supabase.rpc('end_series', { p_event: eventId, p_date: onDate })
+  if (error) throw error
 }

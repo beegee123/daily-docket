@@ -264,6 +264,59 @@ export const HELP_SECTIONS = [
     ),
   },
   {
+    id: 'schedule',
+    title: 'Meetings and reminders',
+    body: (
+      <>
+        <ul>
+          <li>
+            An event with a start time is a <strong>meeting</strong>. Today's meetings from every area sit in
+            <strong> Schedule</strong> at the top of Today, earliest first, so a TDX call and a V1 review are in one
+            list.
+          </li>
+          <li>Tick a meeting once you've been. It fades, and so does any meeting that has finished.</li>
+          <li>In a shared area, your tick is only yours; the other person ticks their own.</li>
+          <li>
+            Tap the Schedule heading to fold it to one line: how many meetings and what's next. It folds itself once
+            every meeting is over or ticked.
+          </li>
+          <li>All-day events and trips keep their banner above the lists.</li>
+        </ul>
+        <h3>Repeating meetings</h3>
+        <ul>
+          <li>
+            <strong>Repeats</strong> on the event form: every weekday, every week on the days you pick, every 2 weeks,
+            or every month on the same date. Add an until date if it stops. Enter the Monday stand-up once and it shows
+            up every Monday, with its reminder.
+          </li>
+          <li>
+            Opening one date of a series and saving asks <strong>Just this one</strong> (only that date changes) or{' '}
+            <strong>This and later ones</strong> (earlier dates stay as they were).
+          </li>
+          <li>
+            Delete on a series offers <strong>Not this time</strong> (skip that date, for a holiday), This and later ones,
+            or every one.
+          </li>
+          <li>Attended ticks are per date. Google Calendar gets one repeating event, not a copy for each week.</li>
+          <li>Trips and events spanning several days can't repeat.</li>
+        </ul>
+        <h3>Reminders</h3>
+        <ul>
+          <li>
+            Each meeting has <strong>Remind me</strong>: none, 5, 10, 15 or 30 minutes, or 1 hour before. New meetings
+            start with your default from Settings → Reminders.
+          </li>
+          <li>Everyone in the meeting's area gets it, if they have meeting reminders switched on.</li>
+          <li>
+            A task can have <strong>Remind me at</strong> a time on its day. It goes to whoever the task is assigned to,
+            or to you if no one is. Move the task to another day and the reminder moves too. Done tasks stay quiet.
+          </li>
+          <li>Reminders go out within 5 minutes of their time, and need notifications on for your device.</li>
+        </ul>
+      </>
+    ),
+  },
+  {
     id: 'notifications',
     title: 'Notifications',
     body: (
@@ -278,6 +331,7 @@ export const HELP_SECTIONS = [
           many tasks you have and what's first. Days with nothing on your docket are skipped.
         </li>
         <li>"Send today's digest now" shows you one straight away.</li>
+        <li>Meeting and task reminders: see Meetings and reminders above.</li>
       </ul>
     ),
   },

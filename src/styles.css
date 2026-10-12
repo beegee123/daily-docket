@@ -1055,3 +1055,117 @@ a.event-row:hover { color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 .start-day { margin-top: 8px; max-width: 220px; }
 .routine-foot { margin-top: 12px; }
 .routine-foot .hint { margin-top: 0; }
+
+/* Schedule on Today (step 21): today's meetings, in time order */
+.schedule-title { align-items: center; }
+.schedule-toggle {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 0; background: transparent; padding: 0;
+  font: inherit; color: inherit;
+}
+.schedule.is-open .job-chevron { transform: rotate(90deg); }
+.schedule-folded {
+  width: 100%;
+  min-height: 48px;
+  padding: 10px 14px;
+  border: 0;
+  border-radius: var(--radius-card);
+  background: var(--card);
+  text-align: left;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+}
+.schedule-list { list-style: none; margin: 0; padding: 0; background: var(--card); border-radius: var(--radius-card); }
+.meeting { border-top: 1px solid var(--line-soft); }
+.meeting:first-child { border-top: 0; }
+.meeting-row { display: flex; align-items: center; gap: 4px; padding-right: 8px; }
+.meeting-link {
+  flex: 1; min-width: 0;
+  display: flex; align-items: stretch; gap: 10px;
+  padding: 10px 4px 10px 8px;
+  color: var(--ink);
+}
+.meeting-link:hover { color: var(--ink); }
+.meeting-time {
+  width: 62px; flex-shrink: 0;
+  align-self: center;
+  text-align: right;
+  font: 600 13px var(--font-display);
+  white-space: nowrap;
+}
+.meeting-bar { width: 3px; flex-shrink: 0; border-radius: 2px; }
+.meeting-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.meeting-title { font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.meeting-meta {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px;
+  margin-top: 2px;
+  font-size: 12px; font-weight: 500; color: var(--muted);
+}
+.meeting-tick {
+  width: 44px; height: 44px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  border: 0; background: transparent; padding: 0;
+  color: #FFFFFF; font-size: 14px; font-weight: 700;
+  position: relative;
+  isolation: isolate; /* keeps the circle behind the ✓ */
+}
+.meeting-tick::before {
+  content: '';
+  position: absolute; inset: 8px;
+  border: 2px solid var(--line);
+  border-radius: 50%;
+  z-index: -1;
+}
+.meeting-tick[aria-pressed='true']::before { background: var(--ink); border-color: var(--ink); }
+.meeting.is-over .meeting-link { opacity: .45; }
+.meeting.is-ticked .meeting-title { text-decoration: line-through; }
+.now-line { position: relative; height: 0; margin: 0 12px 0 74px; border-top: 2px solid #D2453B; }
+.now-line::before {
+  content: ''; position: absolute; left: -4px; top: -5px;
+  width: 8px; height: 8px; border-radius: 50%; background: #D2453B;
+}
+.now-line span {
+  position: absolute; left: 10px; top: -8px;
+  padding: 0 4px;
+  background: var(--card);
+  font-size: 10px; font-weight: 700; letter-spacing: .1em; color: #D2453B;
+}
+
+/* Reminder tags: "🔔 10 min", and yellow "🔔 in 8 min" when it's close */
+.bell-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: var(--paper);
+  font-size: 11px; font-weight: 700; color: var(--ink);
+  white-space: nowrap;
+}
+.bell-tag.is-soon { background: var(--marigold); color: var(--marigold-ink); }
+.remind-row .chip-row { flex-wrap: wrap; }
+.settings-row.remind-default { flex-direction: column; align-items: flex-start; gap: 10px; }
+.settings-row.remind-default .settings-text { width: 100%; }
+.settings-row.remind-default .chip-row { flex-wrap: wrap; }
+
+/* Repeating events (step 21b) */
+.repeat-row .chip-row { flex-wrap: wrap; }
+.weekday-row { margin-top: 10px; gap: 6px; }
+.weekday-chip { width: 40px; min-height: 40px; padding: 0; justify-content: center; background: var(--card); }
+.series-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-control);
+  background: var(--card);
+  font-size: 13px;
+  color: var(--muted);
+}
+.series-note strong { color: var(--ink); }
+.scope-ask {
+  padding: 14px;
+  border: 2px solid var(--cobalt);
+  border-radius: var(--radius-card);
+  background: var(--card);
+}
+.scope-ask p { margin: 0 0 12px; font-size: 14px; }
+.scope-buttons { display: flex; flex-direction: column; align-items: stretch; gap: 8px; }
+.scope-buttons .danger-btn { margin: 0; }

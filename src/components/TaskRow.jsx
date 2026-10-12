@@ -5,6 +5,7 @@ import { CircleIcon, CheckCircleIcon, NoteIcon } from './Icons.jsx'
 import { nameFor, shortName, usePeople } from '../lib/people.js'
 import { parseLine } from '../lib/notes.js'
 import { checklistProgress } from '../lib/week.js'
+import { formatTime } from '../lib/events.js'
 
 /**
  * One task on the docket.
@@ -77,6 +78,10 @@ export default function TaskRow({ task, areasById, todayISO, onToggle, onStep })
           {task.status === 'doing' && <span>In progress</span>}
 
           {!isDone && task.dueDate && <span>Due {formatShortDate(task.dueDate, todayISO)}</span>}
+
+          {!isDone && task.remindTime && task.scheduledDate && (
+            <span className="bell-tag">🔔 {formatTime(task.remindTime)}</span>
+          )}
 
           {steps.total > 0 && !onStep && (
             <span className="steps-count">

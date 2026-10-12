@@ -53,6 +53,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
         scheduledDate:
           searchParams.get('date') && searchParams.get('date') >= todayISO ? searchParams.get('date') : todayISO,
         dueDate: '',
+        remindTime: '',
         assignedTo: null,
         originalDate: null,
       })
@@ -74,6 +75,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
           scheduledDate: task.scheduledDate ?? todayISO,
           weekOf: task.weekOf,
           dueDate: task.dueDate ?? '',
+          remindTime: task.remindTime ?? '',
           assignedTo: task.assignedTo ?? null,
           originalDate: task.originalDate,
         })
@@ -92,9 +94,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
   function toggleArea(areaId) {
     setForm((prev) => ({
       ...prev,
-      areaIds: prev.areaIds.includes(areaId)
-        ? prev.areaIds.filter((a) => a !== areaId)
-        : [...prev.areaIds, areaId],
+      areaIds: prev.areaIds.includes(areaId) ? prev.areaIds.filter((a) => a !== areaId) : [...prev.areaIds, areaId],
     }))
   }
 
@@ -130,12 +130,13 @@ export default function TaskForm({ areas, onSaved, announce }) {
         dueDate: form.dueDate,
         areaIds: form.areaIds,
         assignedTo: assignee,
+        remindTime: form.remindTime,
       })
       onSaved()
       if (another) {
         announce(`Added: ${form.title.trim()}`)
         setAddedCount((n) => n + 1)
-        setForm((prev) => ({ ...prev, title: '', notes: '', dueDate: '' }))
+        setForm((prev) => ({ ...prev, title: '', notes: '', dueDate: '', remindTime: '' }))
         setBusy(false)
         titleRef.current?.focus()
         return
@@ -161,6 +162,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
           dueDate: form.dueDate,
           areaIds: form.areaIds,
           assignedTo: assignee,
+          remindTime: form.remindTime,
         })
         added++
       }
@@ -170,7 +172,9 @@ export default function TaskForm({ areas, onSaved, announce }) {
     } catch (err) {
       onSaved()
       // Keep only the lines that didn't make it, so Save can simply be tapped again
-      const rest = items.slice(added).map((t) => [t.title, ...(t.notes ? t.notes.split('\n').map((l) => `  ${l}`) : [])].join('\n'))
+      const rest = items
+        .slice(added)
+        .map((t) => [t.title, ...(t.notes ? t.notes.split('\n').map((l) => `  ${l}`) : [])].join('\n'))
       setPasteText(rest.join('\n'))
       setSaveError(added ? `Added ${added} of ${items.length}. The rest are still below. ${err.message}` : err.message)
       setBusy(false)
@@ -195,7 +199,9 @@ export default function TaskForm({ areas, onSaved, announce }) {
       <div className="screen status-screen" role="alert">
         <h1>Task not found</h1>
         <p>{loadError}</p>
-        <Link to="/" className="btn-primary as-link">Back to today</Link>
+        <Link to="/" className="btn-primary as-link">
+          Back to today
+        </Link>
       </div>
     )
   }
@@ -244,7 +250,9 @@ export default function TaskForm({ areas, onSaved, announce }) {
         </button>
         <h1 className="form-heading">{isNew ? 'New task' : 'Edit task'}</h1>
         {addedCount > 0 && !form.title.trim() ? (
-          <button type="button" className="btn-dark" onClick={goBack}>Done</button>
+          <button type="button" className="btn-dark" onClick={goBack}>
+            Done
+          </button>
         ) : (
           <button type="button" className="btn-dark" disabled={busy} onClick={(e) => handleSave(e, { another: false })}>
             {busy ? 'Saving…' : 'Save'}
@@ -393,8 +401,8 @@ export default function TaskForm({ areas, onSaved, announce }) {
           )}
           {!isNew && daysCarried > 0 && (
             <span className="hint">
-              First on your docket {formatShortDate(form.originalDate, todayISO)} · carried over{' '}
-              {daysCarried} {daysCarried === 1 ? 'day' : 'days'}
+              First on your docket {formatShortDate(form.originalDate, todayISO)} · carried over {daysCarried}{' '}
+              {daysCarried === 1 ? 'day' : 'days'}
             </span>
           )}
         </fieldset>
@@ -443,6 +451,33 @@ export default function TaskForm({ areas, onSaved, announce }) {
           </div>
         </label>
 
+        {day !== 'week' && (
+          <label className="field">
+            <span className="field-caps">REMIND ME AT · OPTIONAL</span>
+            <div className="due-row">
+              <input
+                type="time"
+                className="box-input"
+                step="300"
+                value={form.remindTime}
+                onChange={(e) => update('remindTime', e.target.value)}
+              />
+              {form.remindTime && (
+                <button type="button" className="text-btn" onClick={() => update('remindTime', '')}>
+                  Clear
+                </button>
+              )}
+            </div>
+            {form.remindTime && (
+              <span className="hint">
+                A notification on the task's day
+                {assignee && assignee !== meId ? `, sent to ${nameFor(assignee, meId, people)}` : ''}. Move the task to
+                another day and the reminder moves with it.
+              </span>
+            )}
+          </label>
+        )}
+
         {!pasting && <NotesEditor id="task-notes" value={form.notes} onChange={(v) => update('notes', v)} />}
 
         {saveError && (
@@ -463,7 +498,8 @@ export default function TaskForm({ areas, onSaved, announce }) {
             </button>
             {addedCount > 0 && (
               <span className="hint">
-                {addedCount} added so far · areas and {form.weekOf ? 'week' : 'day'} stay the same · Enter adds the next one
+                {addedCount} added so far · areas and {form.weekOf ? 'week' : 'day'} stay the same · Enter adds the next
+                one
               </span>
             )}
           </div>

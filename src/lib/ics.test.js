@@ -79,7 +79,22 @@ describe('text rules', () => {
 })
 
 describe('whole calendar', () => {
-  const ics = buildCalendar([trip, { ...trip, id: 'e2', person_id: null, title: 'PD1 exam', start_date: '2026-11-02', end_date: '2026-11-02', notes: '- Pencils\n- ID', area_name: 'PD1' }], BEE)
+  const ics = buildCalendar(
+    [
+      trip,
+      {
+        ...trip,
+        id: 'e2',
+        person_id: null,
+        title: 'PD1 exam',
+        start_date: '2026-11-02',
+        end_date: '2026-11-02',
+        notes: '- Pencils\n- ID',
+        area_name: 'PD1',
+      },
+    ],
+    BEE,
+  )
 
   it('uses CRLF line endings and wraps everything in VCALENDAR', () => {
     expect(ics.startsWith('BEGIN:VCALENDAR\r\n')).toBe(true)
@@ -105,7 +120,16 @@ describe('whole calendar', () => {
 })
 
 describe('timed events', () => {
-  const exam = { ...trip, id: 'e3', person_id: null, title: 'PD1 exam', start_date: '2026-11-05', end_date: '2026-11-05', start_time: '14:00:00', end_time: '15:30:00' }
+  const exam = {
+    ...trip,
+    id: 'e3',
+    person_id: null,
+    title: 'PD1 exam',
+    start_date: '2026-11-05',
+    end_date: '2026-11-05',
+    start_time: '14:00:00',
+    end_time: '15:30:00',
+  }
 
   it('converts New York time to UTC, before and after the clocks change', () => {
     expect(zonedToUtc('2026-10-05', '14:00:00', 'America/New_York')).toBe('20261005T180000Z') // EDT, UTC-4
@@ -128,5 +152,62 @@ describe('timed events', () => {
     const ics = buildCalendar([{ ...trip, start_time: '06:15:00' }], BEE)
     expect(ics).toContain('DTSTART;VALUE=DATE:20261005')
     expect(ics).toContain('TRANSP:TRANSPARENT')
+  })
+})
+
+describe('repeating events', () => {
+  // Created on Sun 11 Oct for Mondays 9:30 New York; first real date is Mon 12 Oct
+  const standup = {
+    ...trip,
+    id: 'r1',
+    title: 'TDX standup',
+    person_id: null,
+    person_email: null,
+    start_date: '2026-10-11',
+    end_date: '2026-10-11',
+    start_time: '09:30:00',
+    end_time: '09:45:00',
+    repeat: 'weekly',
+    repeat_days: [1],
+    repeat_until: null,
+    skip_dates: ['2026-10-26', '2026-10-27'],
+  }
+  const lines = (ev) => buildCalendar([ev], BEE).split('\r\n')
+
+  it('sends one event with its pattern, starting on the first real date', () => {
+    const out = lines(standup)
+    expect(out.filter((l) => l === 'BEGIN:VEVENT')).toHaveLength(1)
+    expect(out).toContain('DTSTART:20261012T133000Z')
+    expect(out).toContain('RRULE:FREQ=WEEKLY;BYDAY=MO')
+  })
+
+  it('leaves out skipped dates (only ones the pattern falls on)', () => {
+    const out = lines(standup)
+    expect(out).toContain('EXDATE:20261026T133000Z')
+    expect(out.filter((l) => l.startsWith('EXDATE'))).toHaveLength(1)
+  })
+
+  it('handles every weekday, every 2 weeks, monthly and an until date', () => {
+    expect(lines({ ...standup, repeat: 'weekdays' })).toContain('RRULE:FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR')
+    expect(lines({ ...standup, repeat: 'biweekly', repeat_days: [4, 1] })).toContain(
+      'RRULE:FREQ=WEEKLY;INTERVAL=2;BYDAY=MO,TH;WKST=MO',
+    )
+    const monthly = lines({ ...standup, repeat: 'monthly', start_date: '2026-10-22', end_date: '2026-10-22' })
+    expect(monthly).toContain('RRULE:FREQ=MONTHLY;BYMONTHDAY=22')
+    // 23:59 New York on 30 Nov = 04:59 UTC on 1 Dec
+    expect(lines({ ...standup, repeat_until: '2026-11-30' })).toContain(
+      'RRULE:FREQ=WEEKLY;BYDAY=MO;UNTIL=20261201T045900Z',
+    )
+  })
+
+  it('uses dates for an all-day series', () => {
+    const out = lines({ ...standup, start_time: null, end_time: null, repeat_until: '2026-11-30' })
+    expect(out).toContain('DTSTART;VALUE=DATE:20261012')
+    expect(out).toContain('RRULE:FREQ=WEEKLY;BYDAY=MO;UNTIL=20261130')
+    expect(out).toContain('EXDATE;VALUE=DATE:20261026')
+  })
+
+  it('drops a series with no dates left', () => {
+    expect(lines({ ...standup, repeat_until: '2026-10-11' }).filter((l) => l === 'BEGIN:VEVENT')).toHaveLength(0)
   })
 })
