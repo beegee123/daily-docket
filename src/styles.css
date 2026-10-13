@@ -1177,3 +1177,8 @@ a.event-row:hover { color: var(--ink); box-shadow: 0 0 0 1px var(--line); }
 .rule-link { display: flex; gap: 10px; align-items: center; justify-content: space-between; }
 .rule-link .text-btn { white-space: nowrap; }
 .reset-note { margin: 0 20px 12px; }
+
+/* A future day's meetings (Day screen) */
+.meeting-chevron { padding-right: 8px; }
+.day-banners { margin: 0; padding: 0; }
+.add-on-day-event { display: block; margin-top: 4px; text-align: center; }

@@ -145,7 +145,10 @@ export const HELP_SECTIONS = [
       <>
         <ul>
           <li>One week at a time, Monday to Sunday. The arrows page to later weeks.</li>
-          <li>Tap a day to see all of its tasks and add one on that day.</li>
+          <li>
+            Tap a day to see its meetings, trips and tasks, and to add a task or meeting on that day. Tapping a meeting
+            there opens that date, so you can change one date of a repeating meeting ahead of time.
+          </li>
           <li>Trips and events show as tags on the days they cover.</li>
           <li>The suitcase opens Trips &amp; events.</li>
           <li>Pick an area chip to see only that area. That also shows Shift plan.</li>
