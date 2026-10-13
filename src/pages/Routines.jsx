@@ -3,16 +3,19 @@ import { Link } from 'react-router'
 import AreaChips from '../components/AreaChips.jsx'
 import ViewSwitch from '../components/ViewSwitch.jsx'
 import { PlusIcon } from '../components/Icons.jsx'
-import { fetchRoutines, startRoutine } from '../lib/api.js'
+import { fetchRepeatRules, fetchRoutines, startRoutine } from '../lib/api.js'
 import { daysFromToday, formatShortDate, startOfWeekISO, toLocalISODate } from '../lib/dates.js'
 import { routineMeta } from '../lib/routines.js'
+import { nextOccurrence, repeatSummary } from '../lib/repeat.js'
 import { supabase } from '../lib/supabase.js'
 
 /**
  * Routines: saved checklists you run again and again (Guest turnover,
  * Monday work setup). Each card opens to show its steps and Start buttons.
  * Starting one adds a single task named after it, with its steps as a
- * checklist (supabase/020_start_routine.sql).
+ * checklist (supabase/020_start_routine.sql). A routine can also repeat
+ * on a schedule; below them, Repeating tasks lists the plain tasks that
+ * repeat (supabase/023_repeat_rules.sql).
  */
 export default function Routines({ areas, onStarted, announce }) {
   const [routines, setRoutines] = useState(null) // null = loading
@@ -21,6 +24,7 @@ export default function Routines({ areas, onStarted, announce }) {
   const [open, setOpen] = useState(() => new Set())
   const [busy, setBusy] = useState(null) // id of the routine being started
   const [pickingDay, setPickingDay] = useState(null) // id whose "Other day" picker is showing
+  const [rules, setRules] = useState([]) // every repeat: routines' and tasks'
   const todayISO = toLocalISODate()
 
   async function start(routine, { day = null, week = null }, label) {
@@ -45,6 +49,10 @@ export default function Routines({ areas, onStarted, announce }) {
         setError(null)
       })
       .catch((e) => setError(e.message))
+    // Before SQL 023 there are no repeats; the screen works without them
+    fetchRepeatRules()
+      .then(setRules)
+      .catch(() => setRules([]))
   }, [])
 
   // Load, and reload when anyone sharing an area changes a routine
@@ -54,6 +62,7 @@ export default function Routines({ areas, onStarted, announce }) {
     const channel = supabase
       .channel('routines-screen')
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'routines' }, load)
+      .on('postgres_changes', { event: '*', schema: 'docket', table: 'repeat_rules' }, load)
       .subscribe()
     return () => {
       supabase.removeChannel(channel)
@@ -65,6 +74,12 @@ export default function Routines({ areas, onStarted, announce }) {
   const shown = (routines ?? []).filter((r) => areasById[r.areaId] && (!areaFilter || r.areaId === areaFilter))
   const order = new Map(areas.map((a, i) => [a.id, i]))
   shown.sort((a, b) => order.get(a.areaId) - order.get(b.areaId) || a.name.localeCompare(b.name))
+
+  const ruleFor = Object.fromEntries(rules.filter((r) => r.routineId).map((r) => [r.routineId, r]))
+  const taskRules = rules
+    .filter((r) => !r.routineId && areasById[r.areaId] && (!areaFilter || r.areaId === areaFilter))
+    .map((r) => ({ ...r, next: nextOccurrence(r, todayISO) }))
+    .sort((a, b) => (a.next ?? '9999').localeCompare(b.next ?? '9999') || a.title.localeCompare(b.title))
 
   const toggle = (id) =>
     setOpen((prev) => {
@@ -138,6 +153,12 @@ export default function Routines({ areas, onStarted, announce }) {
                       {routineMeta(r, area.name)}
                       {r.timesUsed > 0 && ` · used ${r.timesUsed} ${r.timesUsed === 1 ? 'time' : 'times'}`}
                     </span>
+                    {ruleFor[r.id] && (
+                      <span className="routine-repeat">
+                        ↻ {repeatSummary(ruleFor[r.id])}
+                        {ruleFor[r.id].ifMissed === 'fresh' ? ' · starts fresh' : ''}
+                      </span>
+                    )}
                   </span>
                   <span aria-hidden="true" className="chevron job-chevron">
                     ›
@@ -215,6 +236,44 @@ export default function Routines({ areas, onStarted, announce }) {
             )
           })}
         </ul>
+
+        {taskRules.length > 0 && (
+          <section>
+            <h2 className="section-title">
+              Repeating tasks <span className="count">{taskRules.length}</span>
+            </h2>
+            <ul className="routine-list">
+              {taskRules.map((r) => {
+                const area = areasById[r.areaId]
+                return (
+                  <li key={r.id} className="routine-card">
+                    <Link to={`/repeats/${r.id}`} className="routine-toggle">
+                      <span className="routine-text">
+                        <span className="routine-name">{r.title}</span>
+                        <span className="routine-meta">
+                          <span className="dot" style={{ background: area.color }} />
+                          {area.name} · ↻ {repeatSummary(r)}
+                        </span>
+                        <span className="routine-repeat">
+                          {r.next
+                            ? r.next === todayISO
+                              ? 'On today'
+                              : `Next ${formatShortDate(r.next, todayISO)}`
+                            : 'No dates left'}
+                          {r.ifMissed === 'fresh' ? ' · starts fresh' : ' · carries over'}
+                        </span>
+                      </span>
+                      <span aria-hidden="true" className="chevron">
+                        ›
+                      </span>
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+            <p className="hint">To add one, make a task and pick Repeats.</p>
+          </section>
+        )}
       </main>
     </div>
   )

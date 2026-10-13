@@ -5,6 +5,8 @@ import HelpLink from '../components/HelpLink.jsx'
 import { daysBetween, daysFromToday, formatShortDate, toLocalISODate } from '../lib/dates.js'
 import { isCarried, isDoneOn, isMyJob, isOpen } from '../lib/tasks.js'
 
+const startsFresh = (task) => task.rule?.ifMissed === 'fresh'
+
 /**
  * Close the day: decide where each open task goes.
  * Every task starts on "Tomorrow", so one tap on Confirm rolls
@@ -20,8 +22,10 @@ export default function CloseDay({ areas, tasks, userId, onClosed }) {
   // Only your jobs: assigned to you, or unassigned and added by you.
   // Closing your day never moves someone else's task.
   const othersOpen = tasks.filter((t) => isOpen(t, todayISO) && !isMyJob(t, userId)).length
+  // Repeats set to Start fresh aren't moved: tomorrow brings a clean copy
+  const resets = tasks.filter((t) => isOpen(t, todayISO) && isMyJob(t, userId) && startsFresh(t))
   const open = tasks
-    .filter((t) => isOpen(t, todayISO) && isMyJob(t, userId))
+    .filter((t) => isOpen(t, todayISO) && isMyJob(t, userId) && !startsFresh(t))
     .sort((a, b) => {
       const ac = isCarried(a, todayISO)
       const bc = isCarried(b, todayISO)
@@ -37,8 +41,7 @@ export default function CloseDay({ areas, tasks, userId, onClosed }) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState(null)
 
-  const choose = (taskId, change) =>
-    setChoices((prev) => ({ ...prev, [taskId]: { ...prev[taskId], ...change } }))
+  const choose = (taskId, change) => setChoices((prev) => ({ ...prev, [taskId]: { ...prev[taskId], ...change } }))
 
   // A task that arrived after this screen opened (say, from another
   // device) is simply left alone; it will carry over on its own.
@@ -84,7 +87,9 @@ export default function CloseDay({ areas, tasks, userId, onClosed }) {
   return (
     <div className="screen close-day">
       <header className="close-header">
-        <Link to="/" className="text-btn back-link">Back to today</Link>
+        <Link to="/" className="text-btn back-link">
+          Back to today
+        </Link>
         <HelpLink topic="close" label="How Close the day works" />
         <span className="eyebrow">DAILY DOCKET</span>
         <h1>Close the day</h1>
@@ -93,16 +98,25 @@ export default function CloseDay({ areas, tasks, userId, onClosed }) {
             ? `${doneCount} done and nothing left open.`
             : `${doneCount} done, ${open.length} still open. Choose where each one goes, or roll them all to tomorrow.`}
         </p>
+        {resets.length > 0 && (
+          <p className="hint">
+            {resets.map((t) => t.title).join(', ')} {resets.length === 1 ? 'resets' : 'reset'} tomorrow (set to start
+            fresh), so {resets.length === 1 ? "it isn't" : "they aren't"} listed.
+          </p>
+        )}
         {othersOpen > 0 && (
           <p className="hint">
-            {othersOpen} shared {othersOpen === 1 ? 'task' : 'tasks'} for someone else {othersOpen === 1 ? "isn't" : "aren't"} included.
+            {othersOpen} shared {othersOpen === 1 ? 'task' : 'tasks'} for someone else{' '}
+            {othersOpen === 1 ? "isn't" : "aren't"} included.
           </p>
         )}
       </header>
 
       {open.length === 0 ? (
         <div className="close-empty">
-          <Link to="/" className="btn-primary as-link">Back to today</Link>
+          <Link to="/" className="btn-primary as-link">
+            Back to today
+          </Link>
         </div>
       ) : (
         <>

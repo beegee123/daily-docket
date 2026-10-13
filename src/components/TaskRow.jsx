@@ -6,6 +6,7 @@ import { nameFor, shortName, usePeople } from '../lib/people.js'
 import { parseLine } from '../lib/notes.js'
 import { checklistProgress } from '../lib/week.js'
 import { formatTime } from '../lib/events.js'
+import { repeatSummary } from '../lib/repeat.js'
 
 /**
  * One task on the docket.
@@ -60,6 +61,12 @@ export default function TaskRow({ task, areasById, todayISO, onToggle, onStep })
               {area.name}
             </span>
           ))}
+
+          {task.ruleId && (
+            <span className="repeat-badge" title={task.rule ? repeatSummary(task.rule) : 'Repeats'}>
+              Repeats
+            </span>
+          )}
 
           {!isDone && daysCarried > 0 && (
             <span className="carry-badge">

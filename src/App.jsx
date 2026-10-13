@@ -14,6 +14,7 @@ import ShiftPlan from './pages/ShiftPlan.jsx'
 import Help from './pages/Help.jsx'
 import Routines from './pages/Routines.jsx'
 import RoutineForm from './pages/RoutineForm.jsx'
+import RepeatForm from './pages/RepeatForm.jsx'
 import SignIn from './pages/SignIn.jsx'
 import { useDocket } from './hooks/useDocket.js'
 import { useSession } from './hooks/useSession.js'
@@ -159,8 +160,9 @@ function Docket({ user }) {
         />
         <Route path="/help" element={<Help />} />
         <Route path="/routines" element={<Routines areas={areas} onStarted={refresh} announce={announce} />} />
-        <Route path="/routines/new" element={<RoutineForm areas={areas} announce={announce} />} />
-        <Route path="/routines/:id" element={<RoutineForm areas={areas} announce={announce} />} />
+        <Route path="/routines/new" element={<RoutineForm areas={areas} onSaved={refresh} announce={announce} />} />
+        <Route path="/routines/:id" element={<RoutineForm areas={areas} onSaved={refresh} announce={announce} />} />
+        <Route path="/repeats/:id" element={<RepeatForm areas={areas} onSaved={refresh} announce={announce} />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
 

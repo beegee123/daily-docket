@@ -1,10 +1,23 @@
 import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
-import { deleteRoutine, fetchRoutine, saveRoutine } from '../lib/api.js'
+import RepeatPicker, { daysToSave, repeatProblem } from '../components/RepeatPicker.jsx'
+import {
+  deleteRepeatRule,
+  deleteRoutine,
+  fetchRoutine,
+  fetchRoutineRule,
+  makeMyRepeats,
+  saveRepeatRule,
+  saveRoutine,
+} from '../lib/api.js'
+import { toLocalISODate } from '../lib/dates.js'
 import { cleanSteps, insertStepAfter, MAX_STEPS, moveStep, pastedSteps, removeStep } from '../lib/routines.js'
 
-/** Add (/routines/new) or edit (/routines/:id) a routine: name, area, steps in order. */
-export default function RoutineForm({ areas, announce }) {
+/**
+ * Add (/routines/new) or edit (/routines/:id) a routine: name, area, steps
+ * in order, and optionally a schedule it repeats on (steps 17-18).
+ */
+export default function RoutineForm({ areas, onSaved, announce }) {
   const { id } = useParams()
   const isNew = !id
   const [searchParams] = useSearchParams()
@@ -20,6 +33,10 @@ export default function RoutineForm({ areas, announce }) {
   const [pasteText, setPasteText] = useState('')
   const stepRefs = useRef([])
   const focusNext = useRef(null) // index of a step to focus after it appears
+  const todayISO = toLocalISODate()
+  // Its repeat: the saved rule (or null), and what the form shows
+  const [rule, setRule] = useState(null)
+  const [repeat, setRepeat] = useState({ repeat: null, repeatDays: null, repeatUntil: '', ifMissed: 'fresh' })
 
   useEffect(() => {
     if (isNew) {
@@ -35,6 +52,14 @@ export default function RoutineForm({ areas, announce }) {
         setForm({ name: r.name, areaId: r.areaId, steps: r.steps.length ? r.steps : [''] })
       })
       .catch((e) => !cancelled && setLoadError(e.message))
+    // Its repeat, if it has one (before SQL 023 there are none)
+    fetchRoutineRule(id)
+      .then((found) => {
+        if (cancelled || !found) return
+        setRule(found)
+        setRepeat({ ...found, repeatUntil: found.repeatUntil ?? '' })
+      })
+      .catch(() => {})
     return () => {
       cancelled = true
     }
@@ -105,10 +130,30 @@ export default function RoutineForm({ areas, announce }) {
     if (!form.areaId) return setSaveError('Pick an area.')
     if (steps.length === 0) return setSaveError('Add at least one step.')
     if (steps.length > MAX_STEPS) return setSaveError(`A routine can have up to ${MAX_STEPS} steps.`)
+    const startDate = rule?.startDate ?? todayISO
+    const issue = repeatProblem(repeat, startDate)
+    if (issue) return setSaveError(issue)
     setBusy(true)
     setSaveError(null)
     try {
-      await saveRoutine({ id: id ?? null, areaId: form.areaId, name: form.name, steps })
+      const routineId = await saveRoutine({ id: id ?? null, areaId: form.areaId, name: form.name, steps })
+      if (repeat.repeat) {
+        await saveRepeatRule({
+          id: rule?.id ?? null,
+          routineId,
+          areaId: form.areaId,
+          repeat: repeat.repeat,
+          repeatDays: daysToSave(repeat, startDate),
+          startDate,
+          repeatUntil: repeat.repeatUntil,
+          ifMissed: repeat.ifMissed,
+        })
+        // If it's due today, today's copy appears now
+        await makeMyRepeats(todayISO).catch(() => {})
+      } else if (rule) {
+        await deleteRepeatRule(rule.id) // copies already made stay
+      }
+      onSaved?.()
       announce(isNew ? `Saved: ${form.name.trim()}` : 'Saved')
       goBack()
     } catch (err) {
@@ -267,6 +312,13 @@ export default function RoutineForm({ areas, announce }) {
             </>
           )}
         </fieldset>
+
+        <RepeatPicker value={repeat} startDate={rule?.startDate ?? todayISO} onChange={setRepeat} />
+        {repeat.repeat && (
+          <p className="hint repeat-note">
+            Each time, one task called “{form.name.trim() || 'this routine'}” with these steps lands on Today by itself.
+          </p>
+        )}
 
         {saveError && (
           <p className="form-error" role="alert">

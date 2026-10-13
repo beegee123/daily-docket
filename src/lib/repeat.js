@@ -4,7 +4,7 @@ import { addDaysISO, daysBetween, formatDayMonth, fromISODate, startOfWeekISO } 
 // the dates. The same rules live in SQL (docket.occurs_on, for reminders)
 // and in the calendar feed (as an RRULE), so all three agree.
 //
-//   repeat       null | 'weekdays' | 'weekly' | 'biweekly' | 'monthly'
+//   repeat       null | 'daily' (tasks and routines only) | 'weekdays' | 'weekly' | 'biweekly' | 'monthly'
 //   repeatDays   ISO weekdays for weekly / every 2 weeks: 1 = Mon ... 7 = Sun
 //   repeatUntil  last possible day, or null
 //   skips        dates left out ("Not this time")
@@ -15,6 +15,15 @@ export const REPEAT_CHOICES = [
   ['weekly', 'Every week'],
   ['biweekly', 'Every 2 weeks'],
   ['monthly', 'Every month'],
+]
+
+/** Tasks and routines can also repeat every day (meetings can't). */
+export const TASK_REPEAT_CHOICES = [REPEAT_CHOICES[0], ['daily', 'Every day'], ...REPEAT_CHOICES.slice(1)]
+
+/** What happens to a copy that isn't done (repeating tasks and routines). */
+export const IF_MISSED_CHOICES = [
+  ['fresh', 'Start fresh', 'Not done by the end of the day? It goes, and tomorrow starts clean.'],
+  ['carry', 'Carry it over', 'Stays on your docket until done; the next one waits until then.'],
 ]
 
 export const WEEKDAYS = [
@@ -40,6 +49,8 @@ export function patternOn(ev, iso) {
   if (ev.repeatUntil && iso > ev.repeatUntil) return false
   const dow = isoWeekday(iso)
   switch (ev.repeat) {
+    case 'daily':
+      return true
     case 'weekdays':
       return dow <= 5
     case 'weekly':
@@ -117,6 +128,7 @@ function dayList(days) {
 export function repeatSummary(ev) {
   if (!isRepeating(ev)) return ''
   const base = {
+    daily: 'Every day',
     weekdays: 'Every weekday',
     weekly: `Every ${dayList(ev.repeatDays ?? [])}`,
     biweekly: `Every 2 weeks on ${dayList(ev.repeatDays ?? [])}`,

@@ -10,6 +10,7 @@ import {
   fetchOpenClosure,
   fetchTodayTasks,
   fetchWeekTasks,
+  makeMyRepeats,
   saveDoneState,
   saveNotes,
   seedStarterAreas,
@@ -42,11 +43,20 @@ export function useDocket(userId) {
   const announce = useCallback((message, action = null) => setNotice({ message, action }), [])
 
   // Fetch areas and tasks. `quiet` refreshes without the loading screen.
+  const repeatsMadeFor = useRef(null) // the day today's repeating copies were made for
   const load = useCallback(
     async ({ quiet = false } = {}) => {
       if (!quiet) setStatus('loading')
       try {
         const now = new Date()
+        // Today's repeating tasks and routines, once a day (the schedule also
+        // does this after midnight; this is the backup). Before SQL 023
+        // there's nothing to make, so a failure is ignored.
+        if (repeatsMadeFor.current !== toLocalISODate(now)) {
+          await makeMyRepeats(toLocalISODate(now))
+            .then(() => (repeatsMadeFor.current = toLocalISODate(now)))
+            .catch((e) => console.warn('Repeats not made', e.message))
+        }
         const thisWeek = startOfWeekISO(toLocalISODate(now))
         const [nextAreas, nextTasks, nextClosure, nextPeople, members, nextEvents, nextWeek] = await Promise.all([
           fetchAreas(),
@@ -135,6 +145,7 @@ export function useDocket(userId) {
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'events' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'event_attendance' }, scheduleReload)
       .on('postgres_changes', { event: '*', schema: 'docket', table: 'event_skips' }, scheduleReload)
+      .on('postgres_changes', { event: '*', schema: 'docket', table: 'repeat_rules' }, scheduleReload)
       .subscribe()
 
     // Coming back to the app (or past midnight) also refreshes

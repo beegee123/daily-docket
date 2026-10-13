@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router'
 import NotesEditor from '../components/NotesEditor.jsx'
-import { dropTask, fetchTask, saveTask } from '../lib/api.js'
+import RepeatPicker, { daysToSave, repeatProblem } from '../components/RepeatPicker.jsx'
+import { dropTask, fetchTask, linkTaskToRule, makeMyRepeats, saveRepeatRule, saveTask } from '../lib/api.js'
+import { patternOn, repeatSummary } from '../lib/repeat.js'
 import { dayParts, daysBetween, daysFromToday, formatShortDate, startOfWeekISO, toLocalISODate } from '../lib/dates.js'
 import { nameFor, usePeople } from '../lib/people.js'
 import { parsePastedList, weeksCarried } from '../lib/week.js'
@@ -37,6 +39,8 @@ export default function TaskForm({ areas, onSaved, announce }) {
   const [pasting, setPasting] = useState(false)
   const [pasteText, setPasteText] = useState('')
   const titleRef = useRef(null)
+  // Repeats (steps 17-18): only for a task that isn't already a copy of one
+  const [repeat, setRepeat] = useState({ repeat: null, repeatDays: null, repeatUntil: '', ifMissed: 'carry' })
 
   // Fill the form: blank for a new task, or from the database for an edit
   useEffect(() => {
@@ -56,6 +60,8 @@ export default function TaskForm({ areas, onSaved, announce }) {
         remindTime: '',
         assignedTo: null,
         originalDate: null,
+        ruleId: null,
+        rule: null,
       })
       return
     }
@@ -76,6 +82,8 @@ export default function TaskForm({ areas, onSaved, announce }) {
           weekOf: task.weekOf,
           dueDate: task.dueDate ?? '',
           remindTime: task.remindTime ?? '',
+          ruleId: task.ruleId,
+          rule: task.rule,
           assignedTo: task.assignedTo ?? null,
           originalDate: task.originalDate,
         })
@@ -105,6 +113,10 @@ export default function TaskForm({ areas, onSaved, announce }) {
     } else if (!form.title.trim()) return 'Give the task a title.'
     if (form.areaIds.length === 0) return 'Pick at least one area.'
     if (!form.weekOf && !form.scheduledDate) return 'Pick a day for this task.'
+    if (repeat.repeat && !pasting && !form.weekOf) {
+      if (form.areaIds.length !== 1) return 'A repeating task goes in one area. Pick just one.'
+      return repeatProblem(repeat, form.scheduledDate)
+    }
     return null
   }
 
@@ -120,6 +132,7 @@ export default function TaskForm({ areas, onSaved, announce }) {
     setBusy(true)
     setSaveError(null)
     if (pasting) return savePasted()
+    if (repeat.repeat && !form.weekOf && !form.ruleId) return saveRepeating()
     try {
       await saveTask({
         id: id ?? null,
@@ -141,6 +154,46 @@ export default function TaskForm({ areas, onSaved, announce }) {
         titleRef.current?.focus()
         return
       }
+      goBack()
+    } catch (err) {
+      setSaveError(err.message)
+      setBusy(false)
+    }
+  }
+
+  // Turning on Repeats: save the repeat, and the task becomes its first copy
+  // (or, for a new task, the copies arrive on their days by themselves)
+  async function saveRepeating() {
+    try {
+      const ruleId = await saveRepeatRule({
+        areaId: form.areaIds[0],
+        assignedTo: assignee,
+        title: form.title,
+        notes: form.notes,
+        remindTime: form.remindTime,
+        repeat: repeat.repeat,
+        repeatDays: daysToSave(repeat, form.scheduledDate),
+        startDate: form.scheduledDate,
+        repeatUntil: repeat.repeatUntil,
+        ifMissed: repeat.ifMissed,
+      })
+      const pattern = { ...repeat, repeatDays: daysToSave(repeat, form.scheduledDate), startDate: form.scheduledDate }
+      if (!isNew) {
+        await saveTask({
+          id,
+          title: form.title,
+          notes: form.notes,
+          scheduledDate: form.scheduledDate,
+          dueDate: form.dueDate,
+          areaIds: form.areaIds,
+          assignedTo: assignee,
+          remindTime: form.remindTime,
+        })
+        if (patternOn(pattern, form.scheduledDate)) await linkTaskToRule(id, ruleId, form.scheduledDate)
+      }
+      await makeMyRepeats(todayISO).catch(() => {})
+      onSaved()
+      announce(`Saved · ${repeatSummary(pattern)}`)
       goBack()
     } catch (err) {
       setSaveError(err.message)
@@ -450,6 +503,22 @@ export default function TaskForm({ areas, onSaved, announce }) {
             )}
           </div>
         </label>
+
+        {form.ruleId && form.rule && (
+          <div className="series-note rule-link">
+            <span>↻ {repeatSummary(form.rule)}. Changes here are for this one only.</span>
+            <Link
+              to={form.rule.routineId ? `/routines/${form.rule.routineId}` : `/repeats/${form.ruleId}`}
+              className="text-btn"
+            >
+              Edit repeat
+            </Link>
+          </div>
+        )}
+
+        {!form.ruleId && day !== 'week' && !pasting && (
+          <RepeatPicker value={repeat} startDate={form.scheduledDate} onChange={setRepeat} />
+        )}
 
         {day !== 'week' && (
           <label className="field">

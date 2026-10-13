@@ -30,6 +30,28 @@ function taskFromDb(row) {
     areaIds: (row.task_areas ?? []).map((link) => link.area_id),
     // "Remind me at" on the task's day: '15:00' or null (supabase/021_reminders.sql)
     remindTime: row.remind_time?.slice(0, 5) ?? null,
+    // A copy made by a repeat (supabase/023_repeat_rules.sql), else null
+    ruleId: row.rule_id ?? null,
+    ruleDate: row.rule_date ?? null,
+    rule: row.repeat_rules ? ruleFromDb(row.repeat_rules) : null,
+  }
+}
+
+function ruleFromDb(row) {
+  return {
+    id: row.id,
+    areaId: row.area_id,
+    createdBy: row.created_by,
+    assignedTo: row.assigned_to ?? null,
+    routineId: row.routine_id ?? null,
+    title: row.title ?? null,
+    notes: row.notes ?? '',
+    remindTime: row.remind_time?.slice(0, 5) ?? null,
+    repeat: row.repeat,
+    repeatDays: row.repeat_days ?? null,
+    startDate: row.start_date,
+    repeatUntil: row.repeat_until ?? null,
+    ifMissed: row.if_missed,
   }
 }
 
@@ -55,8 +77,13 @@ export async function fetchAreas() {
  * todayISO and startOfTodayISO come from the browser, not the database,
  * so "today" means today where you are, not today in UTC.
  */
+const RULE_COLUMNS =
+  'id, area_id, created_by, assigned_to, routine_id, title, notes, remind_time, repeat, repeat_days, start_date, repeat_until, if_missed'
+
 const TASK_COLUMNS =
-  'id, title, notes, status, scheduled_date, week_of, original_date, due_date, completed_at, dropped_at, created_by, assigned_to, completed_by, remind_time, task_areas(area_id)'
+  'id, title, notes, status, scheduled_date, week_of, original_date, due_date, completed_at, dropped_at, created_by, assigned_to, completed_by, remind_time, rule_id, rule_date, task_areas(area_id), repeat_rules(' +
+  RULE_COLUMNS +
+  ')'
 
 export async function fetchTodayTasks(todayISO, startOfTodayISO) {
   const { data, error } = await supabase
@@ -723,4 +750,93 @@ export async function splitSeries(eventId, onDate) {
 export async function endSeries(eventId, onDate) {
   const { error } = await supabase.rpc('end_series', { p_event: eventId, p_date: onDate })
   if (error) throw error
+}
+
+// ---------- Repeating tasks and routines (supabase/023_repeat_rules.sql) ----------
+
+/** Every repeat in areas you can see. */
+export async function fetchRepeatRules() {
+  const { data, error } = await supabase.from('repeat_rules').select(RULE_COLUMNS).order('created_at')
+  if (error) throw error
+  return data.map(ruleFromDb)
+}
+
+export async function fetchRepeatRule(id) {
+  const { data, error } = await supabase.from('repeat_rules').select(RULE_COLUMNS).eq('id', id).maybeSingle()
+  if (error) throw error
+  return data ? ruleFromDb(data) : null
+}
+
+/** A routine's repeat, or null. */
+export async function fetchRoutineRule(routineId) {
+  const { data, error } = await supabase
+    .from('repeat_rules')
+    .select(RULE_COLUMNS)
+    .eq('routine_id', routineId)
+    .maybeSingle()
+  if (error) throw error
+  return data ? ruleFromDb(data) : null
+}
+
+/** Add or change a repeat. Give routineId for a routine, or title (and notes) for a task. Returns its id. */
+export async function saveRepeatRule({
+  id = null,
+  areaId,
+  assignedTo = null,
+  routineId = null,
+  title = null,
+  notes = null,
+  remindTime = null,
+  repeat,
+  repeatDays = null,
+  startDate,
+  repeatUntil = null,
+  ifMissed,
+}) {
+  const row = {
+    area_id: areaId,
+    assigned_to: assignedTo || null,
+    routine_id: routineId,
+    title: routineId ? null : title.trim(),
+    notes: routineId ? null : notes?.trim() || null,
+    remind_time: remindTime || null,
+    repeat,
+    repeat_days: repeat === 'weekly' || repeat === 'biweekly' ? repeatDays : null,
+    start_date: startDate,
+    repeat_until: repeatUntil || null,
+    if_missed: ifMissed,
+  }
+  const { data, error } = id
+    ? await supabase.from('repeat_rules').update(row).eq('id', id).select('id')
+    : await supabase.from('repeat_rules').insert(row).select('id')
+  if (error) {
+    if (error.message?.includes('repeat_rules_days')) throw new Error('Pick at least one day for it to repeat on.')
+    if (error.message?.includes('repeat_rules_until')) throw new Error('The until date has to be after the start.')
+    throw error
+  }
+  if (!data?.length) throw new Error('That repeat could not be saved.')
+  return data[0].id
+}
+
+/** Stop repeating. Copies already on your docket stay. */
+export async function deleteRepeatRule(id) {
+  const { error } = await supabase.from('repeat_rules').delete().eq('id', id)
+  if (error) throw error
+}
+
+/** Make an existing task the first copy of a repeat (when you turn on Repeats while editing it). */
+export async function linkTaskToRule(taskId, ruleId, ruleDate) {
+  const { error } = await supabase.from('tasks').update({ rule_id: ruleId, rule_date: ruleDate }).eq('id', taskId)
+  if (error) throw error
+}
+
+/**
+ * Make today's copies of anything that repeats (the schedule does this just
+ * after midnight; the app does it too when it opens, as a backup).
+ * Returns how many were added.
+ */
+export async function makeMyRepeats(todayISO) {
+  const { data, error } = await supabase.rpc('make_my_repeats', { p_today: todayISO })
+  if (error) throw error
+  return data
 }

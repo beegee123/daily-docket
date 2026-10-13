@@ -85,7 +85,9 @@ export const HELP_SECTIONS = [
         </ul>
         <h3>Notes</h3>
         <ul>
-          <li>Use the toolbar for bullets, numbered lists and checklists, or start a line with "- ", "1. " or "- [ ] ".</li>
+          <li>
+            Use the toolbar for bullets, numbered lists and checklists, or start a line with "- ", "1. " or "- [ ] ".
+          </li>
           <li>Enter continues the list; numbers fix themselves. Press Enter on an empty item to end the list.</li>
           <li>
             Wrap words in **two stars** to make them bold. Web addresses become links. Tick checklist items without
@@ -114,9 +116,7 @@ export const HELP_SECTIONS = [
             Changed your mind later? <strong>Reopen</strong>, on the "Day closed" bar on Today, puts everything back as
             it was. It's there for the rest of that day.
           </li>
-          <li>
-            Closing is optional. If you skip it, unfinished tasks still move to the next day on their own.
-          </li>
+          <li>Closing is optional. If you skip it, unfinished tasks still move to the next day on their own.</li>
           <li>It only moves your own jobs, never a shared task that belongs to someone else.</li>
         </ul>
       </>
@@ -137,8 +137,8 @@ export const HELP_SECTIONS = [
         <h3>This week: goals for the whole week</h3>
         <ul>
           <li>
-            For work planned by the week, not the day. Make each job its own area (like TDX and V1), then add tasks
-            with <strong>This week</strong>, or tap <strong>Add</strong> on the This week panel.
+            For work planned by the week, not the day. Make each job its own area (like TDX and V1), then add tasks with{' '}
+            <strong>This week</strong>, or tap <strong>Add</strong> on the This week panel.
           </li>
           <li>
             The panel at the top of Week has one card per job: its name, "1 of 3" and a progress bar. Tap a card to open
@@ -167,11 +167,13 @@ export const HELP_SECTIONS = [
     body: (
       <>
         <p>
-          For a plan with flexible dates, like exam study. On Week, pick an area, then tap{' '}
-          <strong>Shift … plan</strong>.
+          For a plan with flexible dates, like exam study. On Week, pick an area, then tap <strong>Shift … plan</strong>
+          .
         </p>
         <ul>
-          <li>Choose how many days to move every open task in that area: forward if you're behind, back if you're ahead.</li>
+          <li>
+            Choose how many days to move every open task in that area: forward if you're behind, back if you're ahead.
+          </li>
           <li>The preview shows where the last task, and so your finish date, will land.</li>
           <li>Nothing moves until you tap Shift. Undo appears for a few seconds afterwards.</li>
           <li>This-week tasks move a whole week for every 7 days; shorter shifts leave them where they are.</li>
@@ -190,16 +192,44 @@ export const HELP_SECTIONS = [
           Routines tab; tap a card to see its steps.
         </li>
         <li>
-          <strong>New</strong> makes one: a name, an area and the steps. Enter adds the next step, ↑ ↓ reorder them,
-          and ✕ removes one. <strong>Paste a list</strong> turns lines from your notes app into steps.
+          <strong>New</strong> makes one: a name, an area and the steps. Enter adds the next step, ↑ ↓ reorder them, and
+          ✕ removes one. <strong>Paste a list</strong> turns lines from your notes app into steps.
         </li>
         <li>Everyone who shares the routine's area can see, use and edit it.</li>
         <li>
-          <strong>Start it on</strong> Today, Tomorrow, This week or another day adds one task named after the
-          routine, with its steps as a checklist. On Today it shows "0/6"; tap that to tick steps without opening the
-          task. Ticking the last one asks whether to mark the task done.
+          <strong>Start it on</strong> Today, Tomorrow, This week or another day adds one task named after the routine,
+          with its steps as a checklist. On Today it shows "0/6"; tap that to tick steps without opening the task.
+          Ticking the last one asks whether to mark the task done.
         </li>
         <li>Editing a routine later doesn't change tasks already started from it.</li>
+      </ul>
+    ),
+  },
+  {
+    id: 'repeats',
+    title: 'Repeating tasks and routines',
+    body: (
+      <ul>
+        <li>
+          <strong>Repeats</strong> on a routine or a task: every day, every weekday, every week on the days you pick,
+          every 2 weeks or every month, with an until date if it stops. You set each schedule yourself.
+        </li>
+        <li>
+          Each time it's due, a copy lands on Today by itself, just after midnight (or when you open the app). It's an
+          ordinary task marked <strong>Repeats</strong>: tick it, tick its steps, assign it.
+        </li>
+        <li>
+          <strong>If it isn't done</strong>, each repeat does one of two things. <strong>Start fresh</strong> (for daily
+          routines): the unfinished copy goes overnight and the next one starts with every step unticked. It isn't kept
+          in History, and Close the day leaves it out. <strong>Carry it over</strong> (for things like "Pay rent"): it
+          carries over like any task, and the next copy waits until it's done.
+        </li>
+        <li>
+          Changing a copy changes only that one. <strong>Edit repeat</strong> on the task changes the copies to come;{' '}
+          <strong>Stop repeating</strong> ends it and keeps any copy already on your docket.
+        </li>
+        <li>The Routines tab lists routines with their schedule, and every repeating task under Repeating tasks.</li>
+        <li>Copies appear on their day, so the Week screen doesn't show future ones yet.</li>
       </ul>
     ),
   },
@@ -210,8 +240,8 @@ export const HELP_SECTIONS = [
       <>
         <ul>
           <li>
-            Settings → Manage areas → open an area's share panel, then invite by email. The person needs a Daily
-            Docket login with that same email.
+            Settings → Manage areas → open an area's share panel, then invite by email. The person needs a Daily Docket
+            login with that same email.
           </li>
           <li>
             No email is sent. They join the next time they open Daily Docket signed in. Their badge then changes from
@@ -294,8 +324,8 @@ export const HELP_SECTIONS = [
             <strong>This and later ones</strong> (earlier dates stay as they were).
           </li>
           <li>
-            Delete on a series offers <strong>Not this time</strong> (skip that date, for a holiday), This and later ones,
-            or every one.
+            Delete on a series offers <strong>Not this time</strong> (skip that date, for a holiday), This and later
+            ones, or every one.
           </li>
           <li>Attended ticks are per date. Google Calendar gets one repeating event, not a copy for each week.</li>
           <li>Trips and events spanning several days can't repeat.</li>
@@ -327,8 +357,8 @@ export const HELP_SECTIONS = [
           Daily Docket from there.
         </li>
         <li>
-          <strong>Morning digest</strong>: one notification at the time you choose, weekdays or every day, with how
-          many tasks you have and what's first. Days with nothing on your docket are skipped.
+          <strong>Morning digest</strong>: one notification at the time you choose, weekdays or every day, with how many
+          tasks you have and what's first. Days with nothing on your docket are skipped.
         </li>
         <li>"Send today's digest now" shows you one straight away.</li>
         <li>Meeting and task reminders: see Meetings and reminders above.</li>
@@ -357,8 +387,8 @@ export const HELP_SECTIONS = [
         </dd>
         <dt>A new calendar doesn't show on my phone</dt>
         <dd>
-          In the Google Calendar app: Settings → your account → Daily Docket → turn on Sync. For iPhone's own
-          Calendar app, tick it at calendar.google.com/calendar/syncselect.
+          In the Google Calendar app: Settings → your account → Daily Docket → turn on Sync. For iPhone's own Calendar
+          app, tick it at calendar.google.com/calendar/syncselect.
         </dd>
         <dt>No notifications</dt>
         <dd>

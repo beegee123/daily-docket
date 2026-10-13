@@ -19,6 +19,11 @@ describe('patterns (same rules as docket.occurs_on)', () => {
       '2026-11-09',
     ])
   })
+  it('every day', () => {
+    const ev = { ...base, repeat: 'daily', startDate: '2026-10-16', endDate: '2026-10-16' }
+    expect(dates(ev, '2026-10-12', '2026-10-19')).toEqual(['2026-10-16', '2026-10-17', '2026-10-18', '2026-10-19'])
+    expect(repeatSummary(ev)).toBe('Every day')
+  })
   it('every weekday', () => {
     const ev = { ...base, repeat: 'weekdays', startDate: '2026-10-15', endDate: '2026-10-15' }
     expect(dates(ev, '2026-10-12', '2026-10-20')).toEqual(['2026-10-15', '2026-10-16', '2026-10-19', '2026-10-20'])

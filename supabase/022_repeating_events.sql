@@ -32,7 +32,8 @@ alter table docket.events add constraint events_repeat_allowed check (
     and person_id is null
     and (repeat_until is null or repeat_until >= start_date)
     and (repeat not in ('weekly', 'biweekly')
-         or (cardinality(repeat_days) between 1 and 7 and repeat_days <@ array[1,2,3,4,5,6,7]::smallint[]))
+         or (cardinality(coalesce(repeat_days, '{}')) between 1 and 7
+             and repeat_days <@ array[1,2,3,4,5,6,7]::smallint[]))
   )
 );
 

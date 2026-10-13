@@ -43,6 +43,7 @@ Run the files in `supabase/` in the Supabase SQL Editor, in number order.
 20. `020_start_routine.sql` — start a routine: one task with the routine's steps as its checklist
 21. `021_reminders.sql` — Schedule on Today and reminders: meeting reminders, task "Remind me at", attended ticks, a 5-minute schedule (then redeploy send-digest)
 22. `022_repeating_events.sql` — repeating meetings: the pattern, skipped dates, attended ticks per date, reminders and the calendar feed for each date (then redeploy calendar-feed)
+23. `023_repeat_rules.sql` — repeating tasks and routines: repeat rules, copies made each day (start fresh or carry over), and a 15-minute schedule
 
 `dev_sample_data.sql` loads test data for your own account. Don't run it in a shared or production setup.
 
