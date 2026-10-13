@@ -21,7 +21,10 @@ export const HELP_SECTIONS = [
             planned it.
           </li>
           <li>Tasks belong to areas, like Work, Home or PD1. Each area has its own colour.</li>
-          <li>Nothing is ever deleted. Done and dropped tasks stay in History.</li>
+          <li>
+            Done and dropped tasks stay in History. The one exception: an unfinished copy of a routine set to{' '}
+            <strong>Start fresh</strong> is cleared overnight (see Repeating tasks and routines).
+          </li>
         </ul>
       </>
     ),
@@ -33,7 +36,8 @@ export const HELP_SECTIONS = [
       <>
         <ul>
           <li>
-            <strong>Carried over</strong> comes first, oldest at the top. Then <strong>Today</strong>, then{' '}
+            <strong>Schedule</strong> comes first when you have meetings today (see Meetings and reminders). Then{' '}
+            <strong>Carried over</strong>, oldest at the top, then <strong>Today</strong>, then{' '}
             <strong>Done today</strong>.
           </li>
           <li>Tap the circle to tick a task off. Tap it again to undo. Tap the title to open it.</li>
@@ -45,7 +49,11 @@ export const HELP_SECTIONS = [
             A task with steps (a checklist in its notes, or a started routine) shows a count like "2/6". Tap it to tick
             steps in place.
           </li>
-          <li>A yellow banner shows trips and events happening today.</li>
+          <li>A yellow banner shows trips and all-day events happening today.</li>
+          <li>
+            Tags on a task: <strong>Repeats</strong> (a copy of a repeating task or routine), 🔔 3:00 pm (a reminder),
+            Due, and who it's for.
+          </li>
           <li>History, at the bottom, lists what you finished in the last 30 days and what you dropped.</li>
         </ul>
       </>
@@ -68,7 +76,14 @@ export const HELP_SECTIONS = [
             <strong>Due date</strong> is optional: the real deadline, if there is one. The task still carries over day
             by day; the due date just reminds you.
           </li>
-          <li>A task can sit in more than one area.</li>
+          <li>A task can sit in more than one area (a repeating one goes in just one).</li>
+          <li>
+            <strong>Repeats</strong> makes it come back on a schedule you set; see Repeating tasks and routines.
+          </li>
+          <li>
+            <strong>Remind me at</strong> sends a notification at that time on the task's day; see Meetings and
+            reminders.
+          </li>
           <li>
             <strong>Save and add another</strong> keeps the form open with the same areas and day, so you can enter a
             batch, like a week of study sessions. After the first one, Enter adds the next.
@@ -118,6 +133,7 @@ export const HELP_SECTIONS = [
           </li>
           <li>Closing is optional. If you skip it, unfinished tasks still move to the next day on their own.</li>
           <li>It only moves your own jobs, never a shared task that belongs to someone else.</li>
+          <li>Repeats set to Start fresh aren't listed: they reset tomorrow instead of moving.</li>
         </ul>
       </>
     ),
@@ -202,6 +218,9 @@ export const HELP_SECTIONS = [
           Ticking the last one asks whether to mark the task done.
         </li>
         <li>Editing a routine later doesn't change tasks already started from it.</li>
+        <li>
+          To have it appear by itself, set <strong>Repeats</strong> on the routine (see Repeating tasks and routines).
+        </li>
       </ul>
     ),
   },
@@ -276,6 +295,7 @@ export const HELP_SECTIONS = [
           <li>Everyone in the area you choose sees it on Today and Week, and can edit it.</li>
           <li>Trips and events never carry over.</li>
           <li>Who's away only lists people who have joined the chosen area.</li>
+          <li>An event with a time is a meeting: it can repeat and remind you. See Meetings and reminders.</li>
         </ul>
         <h3>Your calendar</h3>
         <ul>
@@ -378,7 +398,18 @@ export const HELP_SECTIONS = [
         <dt>A task disappeared</dt>
         <dd>
           It was probably moved to a later day, or it's a This week task: look on Week. Dropped tasks are in History,
-          where you can restore them.
+          where you can restore them. An unfinished routine set to Start fresh is cleared overnight on purpose.
+        </dd>
+        <dt>A repeating task or routine didn't appear today</dt>
+        <dd>
+          Check its schedule on the Routines tab: the days, the until date, and that today isn't before it starts. If
+          it's set to Carry it over, the next copy waits until the last one is done. Opening the app also makes today's
+          copies.
+        </dd>
+        <dt>No reminder came</dt>
+        <dd>
+          Check Settings → Reminders is on, the meeting has a Remind me time, and notifications are on for this device.
+          Reminders come within 5 minutes of their time.
         </dd>
         <dt>Google Calendar hasn't updated</dt>
         <dd>
